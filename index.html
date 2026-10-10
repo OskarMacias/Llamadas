@@ -29,6 +29,7 @@
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             padding: 24px;
+            box-sizing: border-box;
         }
 
         h2 {
@@ -96,11 +97,11 @@
         }
 
         /* Colores Específicos */
-        .bg-verde { background-color: #2ecc71; }
+        .bg-verde { background-color: #2ecc71; color: white; }
         .bg-amarillo { background-color: #f1c40f; color: #333; }
-        .bg-rojo { background-color: #e74c3c; }
+        .bg-rojo { background-color: #e74c3c; color: white; }
 
-        /* Sección del Listado */
+        /* Sección del Listado y Buscador */
         .list-section {
             border-top: 2px solid var(--border-color);
             padding-top: 16px;
@@ -124,6 +125,22 @@
             padding: 4px 8px;
             border-radius: 12px;
             font-weight: 600;
+        }
+
+        /* Campo de Búsqueda */
+        .search-box {
+            width: 100%;
+            padding: 10px;
+            font-size: 0.95rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .search-box:focus {
+            border-color: #3498db;
         }
 
         ul {
@@ -153,7 +170,7 @@
 
         .log-time {
             font-size: 0.75rem;
-            opacity: 0.8;
+            opacity: 0.85;
             font-weight: normal;
         }
 
@@ -197,64 +214,98 @@
             <h3>Listado de Llamadas</h3>
             <span id="counter" class="counter">Total: 0</span>
         </div>
+
+        <!-- Buscador -->
+        <input type="text" id="searchInput" class="search-box" placeholder="🔍 Buscar por 4 dígitos o estado..." oninput="filtrarLlamadas()">
+
         <ul id="logList">
-            <li class="empty-msg" id="emptyMsg">Aún no se han registrado llamadas hoy.</li>
+            <li class="empty-msg" id="emptyMsg">Aún no se han registrado llamadas.</li>
         </ul>
     </div>
 </div>
 
 <script>
-    let totalCalls = 0;
+    let callsLog = JSON.parse(localStorage.getItem('callsLog')) || [];
+
+    // Cargar registros al abrir la página
+    window.onload = function() {
+        renderList(callsLog);
+    };
 
     function registrar(estado, claseColor) {
         const digitsInput = document.getElementById('digits');
         const digits = digitsInput.value.trim();
 
-        // Validación: Asegurar que sean exactamente 4 dígitos
         if (digits.length !== 4 || isNaN(digits)) {
             alert('Por favor, ingresa únicamente los 4 dígitos numéricos.');
             digitsInput.focus();
             return;
         }
 
-        const logList = document.getElementById('logList');
-        const emptyMsg = document.getElementById('emptyMsg');
-
-        if (emptyMsg) {
-            emptyMsg.remove();
-        }
-
-        // Obtener hora actual
         const now = new Date();
-        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const dateStr = now.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        // Crear elemento en el listado
-        const li = document.createElement('li');
-        li.className = `log-item ${claseColor}`;
-        li.innerHTML = `
-            <span>**** - ${digits} | ${estado}</span>
-            <span class="log-time">${timeStr}</span>
-        `;
+        const newCall = {
+            id: Date.now(),
+            digits: digits,
+            estado: estado,
+            claseColor: claseColor,
+            fecha: `${dateStr} ${timeStr}`
+        };
 
-        // Insertar al inicio de la lista
-        logList.insertBefore(li, logList.firstChild);
+        // Agregar al inicio del arreglo
+        callsLog.unshift(newCall);
+        
+        // Guardar en el almacenamiento local
+        localStorage.setItem('callsLog', JSON.stringify(callsLog));
 
-        // Incrementar contador
-        totalCalls++;
-        document.getElementById('counter').innerText = `Total: ${totalCalls}`;
+        // Limpiar buscador y re-renderizar lista completa
+        document.getElementById('searchInput').value = '';
+        renderList(callsLog);
 
-        // Limpiar el campo y devolver el foco
+        // Limpiar campo de texto y mantener el foco
         digitsInput.value = '';
         digitsInput.focus();
     }
 
-    // Permitir registrar presionando Enter (opcional para agilizar trabajo)
-    document.getElementById('digits').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            // Si presiona Enter sin elegir, avisa o puedes asociarlo a un botón predeterminado
-            alert('Por favor selecciona uno de los botones de estado.');
+    function renderList(list) {
+        const logList = document.getElementById('logList');
+        logList.innerHTML = '';
+
+        if (list.length === 0) {
+            logList.innerHTML = '<li class="empty-msg">No se encontraron registros.</li>';
+            document.getElementById('counter').innerText = `Total: 0`;
+            return;
         }
-    });
+
+        list.forEach(call => {
+            const li = document.createElement('li');
+            li.className = `log-item ${call.claseColor}`;
+            li.innerHTML = `
+                <span>**** - ${call.digits} | ${call.estado}</span>
+                <span class="log-time">${call.fecha}</span>
+            `;
+            logList.appendChild(li);
+        });
+
+        document.getElementById('counter').innerText = `Mostrando: ${list.length} de ${callsLog.length}`;
+    }
+
+    function filtrarLlamadas() {
+        const query = document.getElementById('searchInput').value.trim().toLowerCase();
+        
+        if (query === '') {
+            renderList(callsLog);
+            return;
+        }
+
+        const filtered = callsLog.filter(call => 
+            call.digits.includes(query) || call.estado.toLowerCase().includes(query)
+        );
+
+        renderList(filtered);
+    }
 </script>
 
 </body>
