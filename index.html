@@ -35,7 +35,34 @@
         h2 {
             text-align: center;
             margin-top: 0;
+            margin-bottom: 12px;
             color: #1a252f;
+        }
+
+        /* Selector de Fecha Histórica */
+        .date-picker-section {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #e9ecef;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .date-picker-section label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .date-input {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #ced4da;
+            font-size: 0.95rem;
+            font-weight: bold;
+            outline: none;
         }
 
         /* Formulario de Entrada Superior */
@@ -181,11 +208,21 @@
             padding: 20px;
         }
     </style>
+
+    <!-- Carga de SDKs de Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
 <div class="container">
     <h2>Registro de Llamadas</h2>
+
+    <!-- Selector para navegar en el historial por fechas -->
+    <div class="date-picker-section">
+        <label for="dateSelect">📅 Consultar Fecha:</label>
+        <input type="date" id="dateSelect" class="date-input" onchange="cambiarFechaConsulta()">
+    </div>
 
     <!-- Renglón para ingresar los 4 dígitos (Arriba) -->
     <div class="input-section">
@@ -195,13 +232,8 @@
 
     <!-- Opciones de Estado (Abajo) -->
     <div class="status-buttons">
-        <!-- Verde -->
         <button class="btn-status bg-verde" onclick="registrar('Contestó', 'bg-verde')">Contestó</button>
-        
-        <!-- Amarillo -->
         <button class="btn-status bg-amarillo" onclick="registrar('No contestó', 'bg-amarillo')">No contestó</button>
-        
-        <!-- Rojos -->
         <button class="btn-status bg-rojo" onclick="registrar('Número incorrecto', 'bg-rojo')">Número incorrecto</button>
         <button class="btn-status bg-rojo" onclick="registrar('Buzón directo', 'bg-rojo')">Buzón directo</button>
         <button class="btn-status bg-rojo" onclick="registrar('Inaccesible', 'bg-rojo')">Inaccesible</button>
@@ -219,18 +251,79 @@
         <input type="text" id="searchInput" class="search-box" placeholder="🔍 Buscar por 4 dígitos o estado..." oninput="filtrarLlamadas()">
 
         <ul id="logList">
-            <li class="empty-msg" id="emptyMsg">Aún no se han registrado llamadas.</li>
+            <li class="empty-msg" id="emptyMsg">Cargando registros...</li>
         </ul>
     </div>
 </div>
 
 <script>
-    let callsLog = JSON.parse(localStorage.getItem('callsLog')) || [];
-
-    // Cargar registros al abrir la página
-    window.onload = function() {
-        renderList(callsLog);
+    // ⚠️ COLOCA AQUÍ TUS CREDENCIALES DE FIREBASE ⚠️
+    const firebaseConfig = {
+        apiKey: "TU_API_KEY",
+        authDomain: "TU_PROJECT_ID.firebaseapp.com",
+        databaseURL: "https://TU_PROJECT_ID-default-rtdb.firebaseio.com",
+        projectId: "TU_PROJECT_ID",
+        storageBucket: "TU_PROJECT_ID.appspot.com",
+        messagingSenderId: "TU_SENDER_ID",
+        appId: "TU_APP_ID"
     };
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let callsLog = [];
+    let currentListener = null;
+    let selectedDateKey = '';
+
+    // Formatear objeto Date a YYYY-MM-DD
+    function formatDateToKey(dateObj) {
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    // Inicialización al cargar la página
+    window.onload = function() {
+        const todayStr = formatDateToKey(new Date());
+        const dateInput = document.getElementById('dateSelect');
+        dateInput.value = todayStr;
+        
+        escucharFecha(todayStr);
+    };
+
+    function cambiarFechaConsulta() {
+        const newDate = document.getElementById('dateSelect').value;
+        if (newDate) {
+            escucharFecha(newDate);
+        }
+    }
+
+    function escucharFecha(dateKey) {
+        selectedDateKey = dateKey;
+
+        // Desconectar escucha previa si existía
+        if (currentListener) {
+            currentListener.off();
+        }
+
+        // Conectar a la fecha seleccionada
+        currentListener = db.ref('llamadas/' + dateKey);
+
+        currentListener.on('value', (snapshot) => {
+            const data = snapshot.val();
+            callsLog = [];
+
+            if (data) {
+                Object.keys(data).forEach(key => {
+                    callsLog.unshift({ id: key, ...data[key] });
+                });
+            }
+
+            filtrarLlamadas();
+        });
+    }
 
     function registrar(estado, claseColor) {
         const digitsInput = document.getElementById('digits');
@@ -242,29 +335,30 @@
             return;
         }
 
+        const todayKey = formatDateToKey(new Date());
+
+        // Si se está editando o viendo un día pasado, advertir o redirigir a hoy
+        if (selectedDateKey !== todayKey) {
+            alert('Atención: Tu consulta estaba en un día pasado. El registro se guardará en la fecha de HOY.');
+            document.getElementById('dateSelect').value = todayKey;
+            escucharFecha(todayKey);
+        }
+
         const now = new Date();
-        const dateStr = now.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
         const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         const newCall = {
-            id: Date.now(),
             digits: digits,
             estado: estado,
             claseColor: claseColor,
-            fecha: `${dateStr} ${timeStr}`
+            hora: timeStr,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
         };
 
-        // Agregar al inicio del arreglo
-        callsLog.unshift(newCall);
-        
-        // Guardar en el almacenamiento local
-        localStorage.setItem('callsLog', JSON.stringify(callsLog));
+        // Guardar en la rama del día de hoy
+        db.ref('llamadas/' + todayKey).push(newCall);
 
-        // Limpiar buscador y re-renderizar lista completa
         document.getElementById('searchInput').value = '';
-        renderList(callsLog);
-
-        // Limpiar campo de texto y mantener el foco
         digitsInput.value = '';
         digitsInput.focus();
     }
@@ -274,7 +368,7 @@
         logList.innerHTML = '';
 
         if (list.length === 0) {
-            logList.innerHTML = '<li class="empty-msg">No se encontraron registros.</li>';
+            logList.innerHTML = '<li class="empty-msg">No hay registros para la fecha seleccionada.</li>';
             document.getElementById('counter').innerText = `Total: 0`;
             return;
         }
@@ -284,7 +378,7 @@
             li.className = `log-item ${call.claseColor}`;
             li.innerHTML = `
                 <span>**** - ${call.digits} | ${call.estado}</span>
-                <span class="log-time">${call.fecha}</span>
+                <span class="log-time">${call.hora}</span>
             `;
             logList.appendChild(li);
         });
