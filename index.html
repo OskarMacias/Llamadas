@@ -257,15 +257,15 @@
 </div>
 
 <script>
-    // ⚠️ COLOCA AQUÍ TUS CREDENCIALES DE FIREBASE ⚠️
+    // Configuración integrada con tus datos de Firebase
     const firebaseConfig = {
-        apiKey: "TU_API_KEY",
-        authDomain: "TU_PROJECT_ID.firebaseapp.com",
-        databaseURL: "https://TU_PROJECT_ID-default-rtdb.firebaseio.com",
-        projectId: "TU_PROJECT_ID",
-        storageBucket: "TU_PROJECT_ID.appspot.com",
-        messagingSenderId: "TU_SENDER_ID",
-        appId: "TU_APP_ID"
+        apiKey: "AIzaSyAhFORcZkm0vRUywEdbL2d_cJCHdH2bn8Q",
+        authDomain: "llamadas-paqueteria.firebaseapp.com",
+        databaseURL: "https://llamadas-paqueteria-default-rtdb.firebaseio.com",
+        projectId: "llamadas-paqueteria",
+        storageBucket: "llamadas-paqueteria.firebasestorage.app",
+        messagingSenderId: "549464406395",
+        appId: "1:549464406395:web:d001d5854c1c80dc9e65de"
     };
 
     // Inicializar Firebase
@@ -337,9 +337,9 @@
 
         const todayKey = formatDateToKey(new Date());
 
-        // Si se está editando o viendo un día pasado, advertir o redirigir a hoy
+        // Si se está viendo un día pasado, cambia la vista al día de hoy para registrar
         if (selectedDateKey !== todayKey) {
-            alert('Atención: Tu consulta estaba en un día pasado. El registro se guardará en la fecha de HOY.');
+            alert('Atención: Estabas consultando un día pasado. Tu nuevo registro se guardará en la fecha de HOY.');
             document.getElementById('dateSelect').value = todayKey;
             escucharFecha(todayKey);
         }
