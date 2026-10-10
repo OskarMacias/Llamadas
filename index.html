@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Llamadas - Paquetería</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-top: 0;
+            color: #1a252f;
+        }
+
+        /* Formulario de Entrada Superior */
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        label {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .phone-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.2rem;
+            text-align: center;
+            letter-spacing: 4px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .phone-input:focus {
+            border-color: #3498db;
+        }
+
+        /* Botones de Estado */
+        .status-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .btn-status {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            cursor: pointer;
+            color: white;
+            transition: transform 0.1s, opacity 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .btn-status:active {
+            transform: scale(0.98);
+        }
+
+        .btn-status:hover {
+            opacity: 0.9;
+        }
+
+        /* Colores Específicos */
+        .bg-verde { background-color: #2ecc71; }
+        .bg-amarillo { background-color: #f1c40f; color: #333; }
+        .bg-rojo { background-color: #e74c3c; }
+
+        /* Sección del Listado */
+        .list-section {
+            border-top: 2px solid var(--border-color);
+            padding-top: 16px;
+        }
+
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .list-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .counter {
+            font-size: 0.85rem;
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .log-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .log-time {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            font-weight: normal;
+        }
+
+        .empty-msg {
+            text-align: center;
+            color: #888;
+            font-style: italic;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Registro de Llamadas</h2>
+
+    <!-- Renglón para ingresar los 4 dígitos (Arriba) -->
+    <div class="input-section">
+        <label for="digits">Últimos 4 dígitos del teléfono:</label>
+        <input type="text" id="digits" class="phone-input" maxlength="4" placeholder="1234" inputmode="numeric" autofocus>
+    </div>
+
+    <!-- Opciones de Estado (Abajo) -->
+    <div class="status-buttons">
+        <!-- Verde -->
+        <button class="btn-status bg-verde" onclick="registrar('Contestó', 'bg-verde')">Contestó</button>
+        
+        <!-- Amarillo -->
+        <button class="btn-status bg-amarillo" onclick="registrar('No contestó', 'bg-amarillo')">No contestó</button>
+        
+        <!-- Rojos -->
+        <button class="btn-status bg-rojo" onclick="registrar('Número incorrecto', 'bg-rojo')">Número incorrecto</button>
+        <button class="btn-status bg-rojo" onclick="registrar('Buzón directo', 'bg-rojo')">Buzón directo</button>
+        <button class="btn-status bg-rojo" onclick="registrar('Inaccesible', 'bg-rojo')">Inaccesible</button>
+        <button class="btn-status bg-rojo" onclick="registrar('Número no existe', 'bg-rojo')">Número no existe</button>
+    </div>
+
+    <!-- Historial de Registro -->
+    <div class="list-section">
+        <div class="list-header">
+            <h3>Listado de Llamadas</h3>
+            <span id="counter" class="counter">Total: 0</span>
+        </div>
+        <ul id="logList">
+            <li class="empty-msg" id="emptyMsg">Aún no se han registrado llamadas hoy.</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+    let totalCalls = 0;
+
+    function registrar(estado, claseColor) {
+        const digitsInput = document.getElementById('digits');
+        const digits = digitsInput.value.trim();
+
+        // Validación: Asegurar que sean exactamente 4 dígitos
+        if (digits.length !== 4 || isNaN(digits)) {
+            alert('Por favor, ingresa únicamente los 4 dígitos numéricos.');
+            digitsInput.focus();
+            return;
+        }
+
+        const logList = document.getElementById('logList');
+        const emptyMsg = document.getElementById('emptyMsg');
+
+        if (emptyMsg) {
+            emptyMsg.remove();
+        }
+
+        // Obtener hora actual
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        // Crear elemento en el listado
+        const li = document.createElement('li');
+        li.className = `log-item ${claseColor}`;
+        li.innerHTML = `
+            <span>**** - ${digits} | ${estado}</span>
+            <span class="log-time">${timeStr}</span>
+        `;
+
+        // Insertar al inicio de la lista
+        logList.insertBefore(li, logList.firstChild);
+
+        // Incrementar contador
+        totalCalls++;
+        document.getElementById('counter').innerText = `Total: ${totalCalls}`;
+
+        // Limpiar el campo y devolver el foco
+        digitsInput.value = '';
+        digitsInput.focus();
+    }
+
+    // Permitir registrar presionando Enter (opcional para agilizar trabajo)
+    document.getElementById('digits').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            // Si presiona Enter sin elegir, avisa o puedes asociarlo a un botón predeterminado
+            alert('Por favor selecciona uno de los botones de estado.');
+        }
+    });
+</script>
+
+</body>
+</html>
