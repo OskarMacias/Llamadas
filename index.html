@@ -195,10 +195,31 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        .item-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .log-time {
             font-size: 0.75rem;
             opacity: 0.85;
             font-weight: normal;
+        }
+
+        .btn-edit {
+            background: rgba(255, 255, 255, 0.3);
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            margin-left: 6px;
+            transition: background 0.2s;
+        }
+
+        .btn-edit:hover {
+            background: rgba(255, 255, 255, 0.6);
         }
 
         .empty-msg {
@@ -206,6 +227,54 @@
             color: #888;
             font-style: italic;
             padding: 20px;
+        }
+
+        /* Ventana Modal de Edición */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .modal-buttons {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            margin-top: 10px;
+            width: 100%;
+            cursor: pointer;
         }
     </style>
 
@@ -256,8 +325,23 @@
     </div>
 </div>
 
+<!-- Modal para Cambiar Estado -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal-content">
+        <h3 id="modalTitle">Cambiar estado del número</h3>
+        <div class="modal-buttons">
+            <button class="btn-status bg-verde" onclick="confirmarEdicion('Contestó', 'bg-verde')">Contestó</button>
+            <button class="btn-status bg-amarillo" onclick="confirmarEdicion('No contestó', 'bg-amarillo')">No contestó</button>
+            <button class="btn-status bg-rojo" onclick="confirmarEdicion('Número incorrecto', 'bg-rojo')">Número incorrecto</button>
+            <button class="btn-status bg-rojo" onclick="confirmarEdicion('Buzón directo', 'bg-rojo')">Buzón directo</button>
+            <button class="btn-status bg-rojo" onclick="confirmarEdicion('Inaccesible', 'bg-rojo')">Inaccesible</button>
+            <button class="btn-status bg-rojo" onclick="confirmarEdicion('Número no existe', 'bg-rojo')">Número no existe</button>
+        </div>
+        <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
+    </div>
+</div>
+
 <script>
-    // Configuración integrada con tus datos de Firebase
     const firebaseConfig = {
         apiKey: "AIzaSyAhFORcZkm0vRUywEdbL2d_cJCHdH2bn8Q",
         authDomain: "llamadas-paqueteria.firebaseapp.com",
@@ -268,15 +352,14 @@
         appId: "1:549464406395:web:d001d5854c1c80dc9e65de"
     };
 
-    // Inicializar Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
     let callsLog = [];
     let currentListener = null;
     let selectedDateKey = '';
+    let selectedCallId = null;
 
-    // Formatear objeto Date a YYYY-MM-DD
     function formatDateToKey(dateObj) {
         const year = dateObj.getFullYear();
         const month = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -284,7 +367,6 @@
         return `${year}-${month}-${day}`;
     }
 
-    // Inicialización al cargar la página
     window.onload = function() {
         const todayStr = formatDateToKey(new Date());
         const dateInput = document.getElementById('dateSelect');
@@ -303,12 +385,10 @@
     function escucharFecha(dateKey) {
         selectedDateKey = dateKey;
 
-        // Desconectar escucha previa si existía
         if (currentListener) {
             currentListener.off();
         }
 
-        // Conectar a la fecha seleccionada
         currentListener = db.ref('llamadas/' + dateKey);
 
         currentListener.on('value', (snapshot) => {
@@ -337,7 +417,6 @@
 
         const todayKey = formatDateToKey(new Date());
 
-        // Si se está viendo un día pasado, cambia la vista al día de hoy para registrar
         if (selectedDateKey !== todayKey) {
             alert('Atención: Estabas consultando un día pasado. Tu nuevo registro se guardará en la fecha de HOY.');
             document.getElementById('dateSelect').value = todayKey;
@@ -355,7 +434,6 @@
             timestamp: firebase.database.ServerValue.TIMESTAMP
         };
 
-        // Guardar en la rama del día de hoy
         db.ref('llamadas/' + todayKey).push(newCall);
 
         document.getElementById('searchInput').value = '';
@@ -377,7 +455,10 @@
             const li = document.createElement('li');
             li.className = `log-item ${call.claseColor}`;
             li.innerHTML = `
-                <span>**** - ${call.digits} | ${call.estado}</span>
+                <div class="item-info">
+                    <span>**** - ${call.digits} | ${call.estado}</span>
+                    <button class="btn-edit" onclick="abrirModal('${call.id}', '${call.digits}')" title="Cambiar estado">✏️</button>
+                </div>
                 <span class="log-time">${call.hora}</span>
             `;
             logList.appendChild(li);
@@ -399,6 +480,34 @@
         );
 
         renderList(filtered);
+    }
+
+    /* Funciones para el Modal de Edición */
+    function abrirModal(callId, digits) {
+        selectedCallId = callId;
+        document.getElementById('modalTitle').innerText = `Cambiar estado de **** - ${digits}`;
+        document.getElementById('editModal').style.display = 'flex';
+    }
+
+    function cerrarModal() {
+        selectedCallId = null;
+        document.getElementById('editModal').style.display = 'none';
+    }
+
+    function confirmarEdicion(nuevoEstado, nuevaClaseColor) {
+        if (!selectedCallId) return;
+
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        // Actualizar en Firebase
+        db.ref(`llamadas/${selectedDateKey}/${selectedCallId}`).update({
+            estado: nuevoEstado,
+            claseColor: nuevaClaseColor,
+            hora: `${timeStr} (editado)`
+        });
+
+        cerrarModal();
     }
 </script>
 
