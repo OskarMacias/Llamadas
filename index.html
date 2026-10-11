@@ -1,707 +1,594 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Control de Paquetes en la Nube</title>
-  <!-- Firebase JS SDK (Compat) -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <style>
-    :root {
-      --primary: #2563eb;
-      --primary-hover: #1d4ed8;
-      --bg: #f8fafc;
-      --card-bg: #ffffff;
-      --text: #1e293b;
-      --border: #e2e8f0;
-      --success: #16a34a;
-      --warning: #d97706;
-      --danger: #dc2626;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Llamadas - Paquetería</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+        }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
-    body { background-color: var(--bg); color: var(--text); padding: 15px; max-width: 1350px; margin: 0 auto; }
-    h1 { text-align: center; margin-bottom: 5px; color: #0f172a; font-size: 1.6rem; }
-    .status-cloud { font-size: 0.85rem; text-align: center; margin-bottom: 20px; color: #16a34a; font-weight: bold; }
-    
-    .grid-container { display: grid; grid-template-columns: 1.1fr 2fr; gap: 20px; }
-    @media (max-width: 950px) { .grid-container { grid-template-columns: 1fr; } }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
 
-    .card { background: var(--card-bg); border-radius: 10px; padding: 18px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid var(--border); margin-bottom: 20px; }
-    .card h2 { font-size: 1.15rem; margin-bottom: 14px; color: #334155; border-bottom: 2px solid var(--bg); padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-    
-    .form-group { margin-bottom: 12px; }
-    label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 0.85rem; }
-    input, select { width: 100%; padding: 9px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; outline: none; }
-    
-    button { background-color: var(--primary); color: white; border: none; padding: 10px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; width: 100%; }
-    button:hover { background-color: var(--primary-hover); }
-    
-    .btn-action { padding: 5px 10px; font-size: 0.8rem; width: auto; background-color: var(--success); }
-    .btn-edit { background-color: #0284c7; padding: 5px 10px; font-size: 0.8rem; width: auto; margin-right: 4px; }
-    .btn-photo { background-color: #8b5cf6; padding: 5px 10px; font-size: 0.8rem; width: auto; color: white; border-radius: 4px; display: inline-block; cursor: pointer; text-decoration: none; }
-    .btn-restore { background-color: #0284c7; padding: 8px 12px; font-size: 0.85rem; }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            box-sizing: border-box;
+        }
 
-    .stats-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px; }
-    .stat-box { padding: 8px; border-radius: 8px; text-align: center; font-size: 0.75rem; }
-    .stat-box.success { background: #dcfce7; color: #14532d; }
-    .stat-box.warning { background: #fef3c7; color: #78350f; }
-    .stat-box.danger  { background: #fee2e2; color: #991b1b; }
-    .stat-number { font-size: 1.2rem; font-weight: bold; }
+        h2 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: #1a252f;
+        }
 
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
-    th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); }
-    th { background-color: #f8fafc; color: #64748b; }
-    tr.over-week { background-color: #fef2f2 !important; }
-    .text-over-week { color: #dc2626; font-weight: bold; }
+        /* Selector de Fecha Histórica */
+        .date-picker-section {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #e9ecef;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
 
-    .badge { padding: 3px 7px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; display: inline-block; }
-    .badge-resguardo { background: #fef3c7; color: #b45309; }
-    .badge-entregado { background: #dcfce7; color: #15803d; }
-    .badge-anomalia  { background: #fee2e2; color: #991b1b; }
-    .badge-chip { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; border-radius: 4px; padding: 1px 5px; font-size: 0.7rem; font-weight: bold; display: inline-block; margin-top: 2px; }
-    .empty-message { text-align: center; color: #94a3b8; padding: 15px; }
-    .section-subtitle { font-size: 0.95rem; font-weight: bold; margin-top: 15px; margin-bottom: 6px; color: #475569; border-left: 3px solid var(--primary); padding-left: 8px; }
-    
-    .pkg-number { display: inline-block; background: #e2e8f0; color: #334155; font-weight: bold; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; margin-right: 5px; }
+        .date-picker-section label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #495057;
+        }
 
-    .highlight-row { animation: highlightAnim 2.5s ease-out; }
-    @keyframes highlightAnim {
-      0% { background-color: #fef08a; }
-      50% { background-color: #fef08a; }
-      100% { background-color: transparent; }
-    }
+        .date-input {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #ced4da;
+            font-size: 0.95rem;
+            font-weight: bold;
+            outline: none;
+        }
 
-    .search-row-clickable { cursor: pointer; }
-    .search-row-clickable:hover { background-color: #f1f5f9; }
+        /* Selector de Chip / Línea */
+        .chip-selection {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
 
-    /* Modales */
-    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
-    .modal-content { background-color: white; padding: 20px; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-    .modal-header { font-size: 1.2rem; font-weight: bold; margin-bottom: 15px; color: #1e293b; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
-    .modal-actions { display: flex; gap: 10px; margin-top: 15px; }
-    .btn-cancel { background-color: #64748b; }
-    
-    .report-filters { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-    @media (max-width: 600px) { .report-filters { grid-template-columns: 1fr; } }
+        .chip-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #0d6efd;
+            background: #ffffff;
+            color: #0d6efd;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
 
-    .preview-img { max-width: 100%; max-height: 300px; border-radius: 8px; margin-top: 10px; border: 1px solid var(--border); display: block; }
-  </style>
+        .chip-btn.active {
+            background: #0d6efd;
+            color: #ffffff;
+        }
+
+        /* Formulario de Entrada Superior */
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .phone-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.2rem;
+            text-align: center;
+            letter-spacing: 4px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .phone-input:focus {
+            border-color: #3498db;
+        }
+
+        /* Botones de Estado */
+        .status-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .btn-status {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            cursor: pointer;
+            color: white;
+            transition: transform 0.1s, opacity 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .btn-status:active {
+            transform: scale(0.98);
+        }
+
+        .btn-status:hover {
+            opacity: 0.9;
+        }
+
+        /* Colores Específicos */
+        .bg-verde { background-color: #2ecc71; color: white; }
+        .bg-amarillo { background-color: #f1c40f; color: #333; }
+        .bg-rojo { background-color: #e74c3c; color: white; }
+
+        /* Sección del Listado y Buscador */
+        .list-section {
+            border-top: 2px solid var(--border-color);
+            padding-top: 16px;
+        }
+
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .list-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .counter {
+            font-size: 0.85rem;
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        /* Campo de Búsqueda */
+        .search-box {
+            width: 100%;
+            padding: 10px;
+            font-size: 0.95rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .search-box:focus {
+            border-color: #3498db;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .log-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .item-info {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .chip-tag {
+            background: rgba(0, 0, 0, 0.15);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .log-time {
+            font-size: 0.75rem;
+            opacity: 0.85;
+            font-weight: normal;
+        }
+
+        .btn-edit {
+            background: rgba(255, 255, 255, 0.3);
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            margin-left: 6px;
+            transition: background 0.2s;
+        }
+
+        .btn-edit:hover {
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        .empty-msg {
+            text-align: center;
+            color: #888;
+            font-style: italic;
+            padding: 20px;
+        }
+
+        /* Ventana Modal de Edición */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .modal-buttons {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            margin-top: 12px;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            margin-top: 8px;
+            width: 100%;
+            cursor: pointer;
+        }
+    </style>
+
+    <!-- Carga de SDKs de Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
-  <h1>📦 Control de Paquetes y Resguardos</h1>
-  <div class="status-cloud">☁️ Sincronización en Tiempo Real Activa</div>
+<div class="container">
+    <h2>Registro de Llamadas</h2>
 
-  <div class="grid-container">
-    <div>
-      <!-- Buscador General -->
-      <div class="card">
-        <h2>🔍 Buscador General</h2>
-        <div class="form-group">
-          <input type="text" id="searchInput" placeholder="Escribe nombre, teléfono o # guía..." oninput="searchPackages()">
-        </div>
-
-        <div id="searchResults" style="display: none;">
-          <div class="stats-container">
-            <div class="stat-box danger"><div>Anomalías</div><div class="stat-number" id="statAnomalies">0</div></div>
-            <div class="stat-box warning"><div>En Resguardo</div><div class="stat-number" id="statPending">0</div></div>
-            <div class="stat-box success"><div>Entregados</div><div class="stat-number" id="statSigned">0</div></div>
-          </div>
-
-          <div class="section-subtitle">📦 Registros Encontrados:</div>
-          <div style="overflow-x: auto; max-height: 450px; overflow-y: auto;">
-            <table>
-              <thead><tr><th>Cliente / Guía</th><th>Fechas</th><th>Estado / Acciones</th></tr></thead>
-              <tbody id="searchResultsBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- Formulario -->
-      <div class="card">
-        <h2>Registrar Paquete / Anomalía</h2>
-        <form id="packageForm">
-          <div class="form-group"><label>Número de Guía</label><input type="text" id="trackingNum" required></div>
-          <div class="form-group"><label>Nombre de la persona</label><input type="text" id="personName" required></div>
-          <div class="form-group"><label>Teléfono (Original)</label><input type="tel" id="phone" required></div>
-          <div class="form-group"><label>Teléfono Alt. (Opcional)</label><input type="tel" id="altPhone"></div>
-          <div class="form-group">
-            <label>Chip Utilizado para Marcar</label>
-            <select id="chipNum">
-              <option value="">Sin especificar</option>
-              <option value="Chip 1">Chip 1</option>
-              <option value="Chip 2">Chip 2</option>
-              <option value="Chip 3">Chip 3</option>
-            </select>
-          </div>
-          <div class="form-group"><label>Descripción (Opcional)</label><input type="text" id="description"></div>
-          <div class="form-group">
-            <label>Estado del Paquete</label>
-            <select id="status" onchange="toggleAnomalyNote()">
-              <option value="Resguardado">En Resguardo</option>
-              <option value="Anomalía">Anomalía (No entregado hoy)</option>
-              <option value="Entregado">Entregado / Firmado</option>
-            </select>
-          </div>
-          <div class="form-group" id="anomalyGroup" style="display: none;">
-            <label>Motivo de Anomalía</label><input type="text" id="anomalyNote">
-          </div>
-          <div class="form-group"><label>Foto de Evidencia (Galería o Cámara)</label><input type="file" id="evidencePhoto" accept="image/*"></div>
-          <div class="form-group"><label>Fecha de Registro</label><input type="datetime-local" id="entryDate" required></div>
-          <button type="submit">Guardar Registro</button>
-        </form>
-      </div>
-
-      <!-- Cargar Respaldo -->
-      <div class="card">
-        <h2>📤 Cargar Respaldo Guardado</h2>
-        <button type="button" class="btn-restore" onclick="document.getElementById('fileInput').click()">Subir archivo .json a la Nube</button>
-        <input type="file" id="fileInput" style="display: none;" accept=".json" onchange="importDataToFirebase(event)">
-      </div>
+    <!-- Selector para navegar en el historial por fechas -->
+    <div class="date-picker-section">
+        <label for="dateSelect">📅 Consultar Fecha:</label>
+        <input type="date" id="dateSelect" class="date-input" onchange="cambiarFechaConsulta()">
     </div>
 
-    <div>
-      <!-- Anomalías -->
-      <div class="card">
-        <h2>🚨 Control de Anomalías</h2>
-        <div style="overflow-x: auto;">
-          <table>
-            <thead><tr><th>Fecha Anomalía</th><th>Cliente / Teléfono</th><th>Guía</th><th>Motivo</th><th>Acción</th></tr></thead>
-            <tbody id="anomaliesTableBody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Tabla Principal -->
-      <div class="card">
-        <h2>
-          <span>📋 Paquetes Activos en Resguardo</span>
-          <span style="background: #2563eb; color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.9rem;" id="activeResguardoCount">Total: 0</span>
-        </h2>
-        <div style="overflow-x: auto;">
-          <table>
-            <thead><tr><th>#</th><th>Cliente / Tel.</th><th>Guía</th><th>Descripción</th><th>Estado</th><th>Fecha Ingreso</th><th>Días en Resguardo</th><th>Acciones</th></tr></thead>
-            <tbody id="generalTableBody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Reporte e Histórico por Cliente -->
-      <div class="card">
-        <h2>📊 Reporte e Historial Entregados por Cliente</h2>
-        <div class="report-filters">
-          <div><label>Buscar Cliente</label><input type="text" id="reportClientInput" placeholder="Nombre cliente..." oninput="generateClientReport()"></div>
-          <div><label>Fecha Inicio</label><input type="date" id="reportStartDate" onchange="generateClientReport()"></div>
-          <div><label>Fecha Fin</label><input type="date" id="reportEndDate" onchange="generateClientReport()"></div>
-        </div>
-        <div id="reportSummary" style="font-weight: bold; margin-bottom: 10px; color: #1e3a8a;"></div>
-        <div style="overflow-x: auto;">
-          <table>
-            <thead><tr><th>Guía</th><th>Cliente</th><th>Fecha Ingreso</th><th>Fecha Entrega / Firma</th><th>Evidencia</th></tr></thead>
-            <tbody id="reportTableBody">
-              <tr><td colspan="5" class="empty-message">Escribe el nombre de un cliente arriba para ver sus entregas.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
+    <!-- Seleccionar con cuál Chip se realiza la llamada -->
+    <label>📱 Selecciona el Chip utilizado:</label>
+    <div class="chip-selection">
+        <button type="button" class="chip-btn active" id="chip1" onclick="seleccionarChip('Chip 1')">Chip 1</button>
+        <button type="button" class="chip-btn" id="chip2" onclick="seleccionarChip('Chip 2')">Chip 2</button>
+        <button type="button" class="chip-btn" id="chip3" onclick="seleccionarChip('Chip 3')">Chip 3</button>
     </div>
-  </div>
 
-  <!-- Modal de Edición Completa -->
-  <div id="editModal" class="modal">
+    <!-- Renglón para ingresar los 4 dígitos (Arriba) -->
+    <div class="input-section">
+        <label for="digits">Últimos 4 dígitos del teléfono:</label>
+        <input type="text" id="digits" class="phone-input" maxlength="4" placeholder="1234" inputmode="numeric" autofocus>
+    </div>
+
+    <!-- Opciones de Estado (Abajo) -->
+    <div class="status-buttons">
+        <button class="btn-status bg-verde" onclick="registrar('Contestó', 'bg-verde')">Contestó</button>
+        <button class="btn-status bg-amarillo" onclick="registrar('No contestó', 'bg-amarillo')">No contestó</button>
+        <button class="btn-status bg-rojo" onclick="registrar('Número incorrecto', 'bg-rojo')">Número incorrecto</button>
+        <button class="btn-status bg-rojo" onclick="registrar('Buzón directo', 'bg-rojo')">Buzón directo</button>
+        <button class="btn-status bg-rojo" onclick="registrar('Inaccesible', 'bg-rojo')">Inaccesible</button>
+        <button class="btn-status bg-rojo" onclick="registrar('Número no existe', 'bg-rojo')">Número no existe</button>
+    </div>
+
+    <!-- Historial de Registro -->
+    <div class="list-section">
+        <div class="list-header">
+            <h3>Listado de Llamadas</h3>
+            <span id="counter" class="counter">Total: 0</span>
+        </div>
+
+        <!-- Buscador -->
+        <input type="text" id="searchInput" class="search-box" placeholder="🔍 Buscar por 4 dígitos, chip o estado..." oninput="filtrarLlamadas()">
+
+        <ul id="logList">
+            <li class="empty-msg" id="emptyMsg">Cargando registros...</li>
+        </ul>
+    </div>
+</div>
+
+<!-- Modal para Cambiar Estado o Eliminar -->
+<div class="modal-overlay" id="editModal">
     <div class="modal-content">
-      <div class="modal-header">✏️ Editar Registro de Paquete</div>
-      <input type="hidden" id="editKey">
-      <div class="form-group"><label>Número de Guía</label><input type="text" id="editTracking"></div>
-      <div class="form-group"><label>Nombre del Propietario</label><input type="text" id="editPerson"></div>
-      <div class="form-group"><label>Teléfono Original</label><input type="tel" id="editPhone"></div>
-      <div class="form-group"><label>Teléfono Alternativo</label><input type="tel" id="editAltPhone"></div>
-      <div class="form-group">
-        <label>Chip Utilizado</label>
-        <select id="editChipNum">
-          <option value="">Sin especificar</option>
-          <option value="Chip 1">Chip 1</option>
-          <option value="Chip 2">Chip 2</option>
-          <option value="Chip 3">Chip 3</option>
-        </select>
-      </div>
-      <div class="form-group"><label>Descripción</label><input type="text" id="editDescription"></div>
-      <div class="form-group"><label>Fecha de Registro</label><input type="datetime-local" id="editEntryDate"></div>
-      <div class="modal-actions">
-        <button type="button" onclick="savePackageEdit()">Guardar Cambios</button>
-        <button type="button" class="btn-cancel" onclick="closeEditModal()">Cancelar</button>
-      </div>
+        <h3 id="modalTitle">Cambiar estado del número</h3>
+        <div class="modal-buttons">
+            <button class="btn-status bg-verde" onclick="confirmarEdicion('Contestó', 'bg-verde')">Contestó</button>
+            <button class="btn-status bg-amarillo" onclick="confirmarEdicion('No contestó', 'bg-amarillo')">No contestó</button>
+            <button class="btn-status bg-rojo" onclick="confirmarEdicion('Número incorrecto', 'bg-rojo')">Número incorrecto</button>
+            <button class="btn-status bg-rojo" onclick="confirmarEdicion('Buzón directo', 'bg-rojo')">Buzón directo</button>
+            <button class="btn-status bg-rojo" onclick="confirmarEdicion('Inaccesible', 'bg-rojo')">Inaccesible</button>
+            <button class="btn-status bg-rojo" onclick="confirmarEdicion('Número no existe', 'bg-rojo')">Número no existe</button>
+        </div>
+        <button class="btn-delete" onclick="eliminarRegistro()">🗑️ Eliminar Registro</button>
+        <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
     </div>
-  </div>
+</div>
 
-  <!-- Modal para Adjuntar Foto al Entregar -->
-  <div id="deliverModal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">✍️ Firmar y Adjuntar Evidencia de Entrega</div>
-      <input type="hidden" id="deliverKey">
-      <div class="form-group"><label>Foto / Captura de Evidencia (Galería o Cámara)</label><input type="file" id="deliverPhotoInput" accept="image/*"></div>
-      <div class="modal-actions">
-        <button type="button" onclick="confirmDeliveryWithPhoto()">Confirmar Entrega</button>
-        <button type="button" class="btn-cancel" onclick="closeDeliverModal()">Cancelar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal para Ver Foto -->
-  <div id="viewPhotoModal" class="modal">
-    <div class="modal-content" style="text-align: center;">
-      <div class="modal-header">📷 Evidencia de Entrega / Resguardo</div>
-      <img id="modalPreviewImage" class="preview-img" src="" alt="Evidencia">
-      <div class="modal-actions" style="margin-top: 15px;">
-        <button type="button" class="btn-cancel" onclick="closeViewPhotoModal()">Cerrar</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
+<script>
     const firebaseConfig = {
-      apiKey: "AIzaSyBnRRdSKC6v4LV0b9rTmyI1c9P-_A-sP-o",
-      authDomain: "resguardo-paquetes.firebaseapp.com",
-      databaseURL: "https://resguardo-paquetes-default-rtdb.firebaseio.com",
-      projectId: "resguardo-paquetes",
-      storageBucket: "resguardo-paquetes.appspot.com",
-      messagingSenderId: "794612391176",
-      appId: "1:794612391176:web:b98c637f1e6b3eb7213426",
-      measurementId: "G-FET9HKB7PW"
+        apiKey: "AIzaSyAhFORcZkm0vRUywEdbL2d_cJCHdH2bn8Q",
+        authDomain: "llamadas-paqueteria.firebaseapp.com",
+        databaseURL: "https://llamadas-paqueteria-default-rtdb.firebaseio.com",
+        projectId: "llamadas-paqueteria",
+        storageBucket: "llamadas-paqueteria.firebasestorage.app",
+        messagingSenderId: "549464406395",
+        appId: "1:549464406395:web:d001d5854c1c80dc9e65de"
     };
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    let packages = [];
 
-    document.addEventListener('DOMContentLoaded', () => {
-      setCurrentDate();
-      setDefaultReportDates();
-      listenToFirebase();
-    });
+    let callsLog = [];
+    let currentListener = null;
+    let selectedDateKey = '';
+    let selectedCallId = null;
+    let selectedChip = 'Chip 1';
 
-    function listenToFirebase() {
-      db.ref('packages').on('value', (snapshot) => {
-        const data = snapshot.val();
-        packages = [];
-        if (data) {
-          Object.keys(data).forEach(key => {
-            packages.push({ firebaseKey: key, ...data[key] });
-          });
+    function formatDateToKey(dateObj) {
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    window.onload = function() {
+        const todayStr = formatDateToKey(new Date());
+        const dateInput = document.getElementById('dateSelect');
+        dateInput.value = todayStr;
+        
+        escucharFecha(todayStr);
+    };
+
+    function seleccionarChip(chipName) {
+        selectedChip = chipName;
+        document.getElementById('chip1').classList.remove('active');
+        document.getElementById('chip2').classList.remove('active');
+        document.getElementById('chip3').classList.remove('active');
+
+        if (chipName === 'Chip 1') document.getElementById('chip1').classList.add('active');
+        if (chipName === 'Chip 2') document.getElementById('chip2').classList.add('active');
+        if (chipName === 'Chip 3') document.getElementById('chip3').classList.add('active');
+    }
+
+    function cambiarFechaConsulta() {
+        const newDate = document.getElementById('dateSelect').value;
+        if (newDate) {
+            escucharFecha(newDate);
         }
-        renderTables();
-        searchPackages();
-        generateClientReport();
-      });
     }
 
-    function setCurrentDate() {
-      const now = new Date();
-      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-      document.getElementById('entryDate').value = now.toISOString().slice(0, 16);
-    }
+    function escucharFecha(dateKey) {
+        selectedDateKey = dateKey;
 
-    function setDefaultReportDates() {
-      const today = new Date();
-      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-      document.getElementById('reportStartDate').value = firstDay.toISOString().slice(0, 10);
-      document.getElementById('reportEndDate').value = today.toISOString().slice(0, 10);
-    }
-
-    function toggleAnomalyNote() {
-      const status = document.getElementById('status').value;
-      document.getElementById('anomalyGroup').style.display = status === 'Anomalía' ? 'block' : 'none';
-    }
-
-    function calculateDaysInStorage(entryDateStr) {
-      if (!entryDateStr) return '---';
-      const entry = new Date(entryDateStr);
-      const now = new Date();
-      const diffTime = Math.abs(now - entry);
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-      if (diffDays === 0) return 'Hoy';
-      if (diffDays === 1) return '1 día';
-      return `${diffDays} días`;
-    }
-
-    function isOlderThanOneWeek(entryDateStr) {
-      if (!entryDateStr) return false;
-      return (new Date().getTime() - new Date(entryDateStr).getTime()) > (7 * 24 * 60 * 60 * 1000);
-    }
-
-    function compressAndConvertImage(fileInput) {
-      return new Promise((resolve) => {
-        const file = fileInput.files[0];
-        if (!file) { resolve(null); return; }
-
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (e) => {
-          const img = new Image();
-          img.src = e.target.result;
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const maxWidth = 800;
-            const scaleSize = maxWidth / img.width;
-            canvas.width = (img.width > maxWidth) ? maxWidth : img.width;
-            canvas.height = (img.width > maxWidth) ? (img.height * scaleSize) : img.height;
-
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL('image/jpeg', 0.6));
-          };
-        };
-      });
-    }
-
-    document.getElementById('packageForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const entryDate = document.getElementById('entryDate').value;
-      const status = document.getElementById('status').value;
-      const photoBase64 = await compressAndConvertImage(document.getElementById('evidencePhoto'));
-
-      const newPackage = {
-        id: Date.now(),
-        tracking: document.getElementById('trackingNum').value.trim(),
-        person: document.getElementById('personName').value.trim(),
-        phone: document.getElementById('phone').value.trim(),
-        altPhone: document.getElementById('altPhone').value.trim() || '',
-        chipNum: document.getElementById('chipNum').value || '',
-        description: document.getElementById('description').value.trim() || '---',
-        status: status,
-        anomalyNote: status === 'Anomalía' ? document.getElementById('anomalyNote').value.trim() : '',
-        anomalyDate: status === 'Anomalía' ? entryDate : null,
-        entryDate: entryDate,
-        signedDate: status === 'Entregado' ? entryDate : null,
-        evidencePhoto: photoBase64 || null
-      };
-
-      db.ref('packages').push(newPackage);
-
-      document.getElementById('trackingNum').value = '';
-      document.getElementById('personName').value = '';
-      document.getElementById('phone').value = '';
-      document.getElementById('altPhone').value = '';
-      document.getElementById('chipNum').value = '';
-      document.getElementById('description').value = '';
-      document.getElementById('anomalyNote').value = '';
-      document.getElementById('evidencePhoto').value = '';
-      document.getElementById('status').value = 'Resguardado';
-      toggleAnomalyNote();
-      setCurrentDate();
-    });
-
-    function importDataToFirebase(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const importedPackages = JSON.parse(e.target.result);
-          if (Array.isArray(importedPackages)) {
-            importedPackages.forEach(pkg => {
-              db.ref('packages').push(pkg);
-            });
-            alert('¡Todos tus datos han sido cargados a la Nube con éxito!');
-          }
-        } catch (err) {
-          alert('Error al leer el archivo de respaldo.');
+        if (currentListener) {
+            currentListener.off();
         }
-      };
-      reader.readAsText(file);
-    }
 
-    function openEditModal(key) {
-      const pkg = packages.find(p => p.firebaseKey === key);
-      if (!pkg) return;
+        currentListener = db.ref('llamadas/' + dateKey);
 
-      document.getElementById('editKey').value = key;
-      document.getElementById('editTracking').value = pkg.tracking || '';
-      document.getElementById('editPerson').value = pkg.person || '';
-      document.getElementById('editPhone').value = pkg.phone || '';
-      document.getElementById('editAltPhone').value = pkg.altPhone || '';
-      document.getElementById('editChipNum').value = pkg.chipNum || '';
-      document.getElementById('editDescription').value = pkg.description !== '---' ? pkg.description : '';
-      document.getElementById('editEntryDate').value = pkg.entryDate || '';
+        currentListener.on('value', (snapshot) => {
+            const data = snapshot.val();
+            callsLog = [];
 
-      document.getElementById('editModal').style.display = 'flex';
-    }
+            if (data) {
+                Object.keys(data).forEach(key => {
+                    callsLog.unshift({ id: key, ...data[key] });
+                });
+            }
 
-    function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
-
-    function savePackageEdit() {
-      const key = document.getElementById('editKey').value;
-      if (!key) return;
-
-      const updatedData = {
-        tracking: document.getElementById('editTracking').value.trim(),
-        person: document.getElementById('editPerson').value.trim(),
-        phone: document.getElementById('editPhone').value.trim(),
-        altPhone: document.getElementById('editAltPhone').value.trim(),
-        chipNum: document.getElementById('editChipNum').value,
-        description: document.getElementById('editDescription').value.trim() || '---',
-        entryDate: document.getElementById('editEntryDate').value
-      };
-
-      db.ref('packages/' + key).update(updatedData, (error) => {
-        if (!error) closeEditModal();
-        else alert('Error al actualizar los datos');
-      });
-    }
-
-    function markAsDelivered(key) {
-      document.getElementById('deliverKey').value = key;
-      document.getElementById('deliverPhotoInput').value = '';
-      document.getElementById('deliverModal').style.display = 'flex';
-    }
-
-    function closeDeliverModal() { document.getElementById('deliverModal').style.display = 'none'; }
-
-    async function confirmDeliveryWithPhoto() {
-      const key = document.getElementById('deliverKey').value;
-      if (!key) return;
-
-      const photoBase64 = await compressAndConvertImage(document.getElementById('deliverPhotoInput'));
-      const now = new Date();
-      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-
-      const updatePayload = {
-        status: 'Entregado',
-        signedDate: now.toISOString().slice(0, 16)
-      };
-
-      if (photoBase64) {
-        updatePayload.evidencePhoto = photoBase64;
-      }
-
-      db.ref('packages/' + key).update(updatePayload, (err) => {
-        if (!err) closeDeliverModal();
-        else alert('Error al actualizar entrega.');
-      });
-    }
-
-    function showPhotoModal(photoBase64) {
-      document.getElementById('modalPreviewImage').src = photoBase64;
-      document.getElementById('viewPhotoModal').style.display = 'flex';
-    }
-
-    function closeViewPhotoModal() { document.getElementById('viewPhotoModal').style.display = 'none'; }
-
-    function markAsResguardo(key) { db.ref('packages/' + key).update({ status: 'Resguardado' }); }
-
-    function formatDate(dateStr) {
-      if (!dateStr) return '---';
-      return new Date(dateStr).toLocaleString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-    }
-
-    function formatPhoneDisplay(pkg) {
-      let html = `<small style="color:#64748b">${pkg.phone}</small>`;
-      if (pkg.altPhone) html += `<br><small style="color:#2563eb; font-weight:bold;">Alt: ${pkg.altPhone}</small>`;
-      if (pkg.chipNum) html += `<br><span class="badge-chip">📱 ${pkg.chipNum}</span>`;
-      return html;
-    }
-
-    function renderTables() {
-      renderGeneralTable();
-      renderAnomaliesTable();
-    }
-
-    function renderGeneralTable() {
-      const tbody = document.getElementById('generalTableBody');
-      tbody.innerHTML = '';
-      
-      const activePackages = packages.filter(p => p.status === 'Resguardado');
-      const totalCount = activePackages.length;
-
-      document.getElementById('activeResguardoCount').textContent = `Total: ${totalCount}`;
-
-      if (totalCount === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="empty-message">No hay paquetes activos en resguardo.</td></tr>`;
-        return;
-      }
-
-      activePackages.sort((a, b) => new Date(b.entryDate || b.id) - new Date(a.entryDate || a.id));
-
-      activePackages.forEach((pkg, index) => {
-        const pkgNum = totalCount - index;
-        const tr = document.createElement('tr');
-        tr.id = `pkg-row-${pkg.firebaseKey}`;
-        const isOverWeek = isOlderThanOneWeek(pkg.entryDate);
-        if (isOverWeek) tr.classList.add('over-week');
-
-        const daysText = calculateDaysInStorage(pkg.entryDate);
-        const daysDisplay = isOverWeek ? `<span class="text-over-week">${daysText}<br><small style="font-size:0.75rem;">⚠️ +7 días</small></span>` : daysText;
-
-        tr.innerHTML = `
-          <td><span class="pkg-number">#${pkgNum}</span></td>
-          <td><strong>${pkg.person}</strong><br>${formatPhoneDisplay(pkg)}</td>
-          <td><small>${pkg.tracking}</small></td>
-          <td>${pkg.description || '---'}</td>
-          <td><span class="badge badge-resguardo">${pkg.status}</span></td>
-          <td>${formatDate(pkg.entryDate)}</td>
-          <td><strong>${daysDisplay}</strong></td>
-          <td style="white-space: nowrap;">
-            <button class="btn-edit" onclick="openEditModal('${pkg.firebaseKey}')">✏️ Editar</button>
-            <button class="btn-action" onclick="markAsDelivered('${pkg.firebaseKey}')">Firmar / Entregar</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function renderAnomaliesTable() {
-      const tbody = document.getElementById('anomaliesTableBody');
-      tbody.innerHTML = '';
-      const anomalies = packages.filter(p => p.status === 'Anomalía');
-
-      if (anomalies.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="empty-message">No hay anomalías registradas actualmente.</td></tr>`;
-        return;
-      }
-
-      anomalies.sort((a, b) => new Date(b.entryDate || b.id) - new Date(a.entryDate || a.id)).forEach(pkg => {
-        const tr = document.createElement('tr');
-        tr.id = `pkg-row-${pkg.firebaseKey}`;
-        if (isOlderThanOneWeek(pkg.entryDate)) tr.classList.add('over-week');
-
-        tr.innerHTML = `
-          <td>${formatDate(pkg.anomalyDate || pkg.entryDate)}</td>
-          <td><strong>${pkg.person}</strong><br>${formatPhoneDisplay(pkg)}</td>
-          <td><small>${pkg.tracking}</small></td>
-          <td><span style="color:#dc2626; font-weight:bold;">${pkg.anomalyNote || 'Sin motivo'}</span></td>
-          <td style="white-space: nowrap;">
-            <button class="btn-edit" onclick="openEditModal('${pkg.firebaseKey}')">✏️ Editar</button>
-            <button class="btn-action" style="background:#d97706; margin-bottom: 2px;" onclick="markAsResguardo('${pkg.firebaseKey}')">A Resguardo</button>
-            <button class="btn-action" onclick="markAsDelivered('${pkg.firebaseKey}')">Entregar</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function searchPackages() {
-      const query = document.getElementById('searchInput').value.trim().toLowerCase();
-      const resultsContainer = document.getElementById('searchResults');
-      if (!query) { resultsContainer.style.display = 'none'; return; }
-
-      const filtered = packages.filter(p => 
-        p.person.toLowerCase().includes(query) ||
-        p.phone.toLowerCase().includes(query) ||
-        (p.altPhone && p.altPhone.toLowerCase().includes(query)) ||
-        (p.chipNum && p.chipNum.toLowerCase().includes(query)) ||
-        p.tracking.toLowerCase().includes(query)
-      );
-
-      resultsContainer.style.display = 'block';
-
-      document.getElementById('statAnomalies').textContent = filtered.filter(p => p.status === 'Anomalía').length;
-      document.getElementById('statPending').textContent = filtered.filter(p => p.status === 'Resguardado').length;
-      document.getElementById('statSigned').textContent = filtered.filter(p => p.status === 'Entregado').length;
-
-      const body = document.getElementById('searchResultsBody');
-      body.innerHTML = '';
-      if(filtered.length === 0) {
-        body.innerHTML = `<tr><td colspan="3" class="empty-message">No se encontraron coincidencias.</td></tr>`;
-      } else {
-        filtered.forEach(pkg => {
-          let badgeClass = pkg.status === 'Entregado' ? 'badge-entregado' : (pkg.status === 'Anomalía' ? 'badge-anomalia' : 'badge-resguardo');
-          
-          let actionBtn = '';
-          if (pkg.status !== 'Entregado') {
-            actionBtn = `<button class="btn-action" onclick="event.stopPropagation(); markAsDelivered('${pkg.firebaseKey}')">Firmar / Entregar</button>`;
-          } else {
-            actionBtn = `<span style="color:#16a34a; font-weight:bold; font-size:0.75rem;">✅ Entregado</span>`;
-          }
-
-          let datesHtml = `<small style="color:#475569;"><strong>Ingreso:</strong> ${formatDate(pkg.entryDate)}</small>`;
-          if (pkg.status === 'Entregado') {
-            datesHtml += `<br><small style="color:#16a34a; font-weight:bold;"><strong>Entregado:</strong> ${formatDate(pkg.signedDate)}</small>`;
-          } else {
-            datesHtml += `<br><small style="color:#b45309;"><strong>Resguardo:</strong> ${calculateDaysInStorage(pkg.entryDate)}</small>`;
-          }
-
-          let chipBadge = pkg.chipNum ? `<span class="badge-chip">📱 ${pkg.chipNum}</span>` : '';
-          let photoBtnHtml = pkg.evidencePhoto ? `<br><button class="btn-photo" onclick="event.stopPropagation(); showPhotoModal('${pkg.evidencePhoto}')">📷 Ver Foto</button>` : '';
-
-          body.innerHTML += `
-            <tr class="search-row-clickable" onclick="scrollToPackage('${pkg.firebaseKey}')">
-              <td><strong>${pkg.person}</strong><br><small style="color:#64748b">${pkg.tracking}</small><br>${chipBadge}${photoBtnHtml}</td>
-              <td>${datesHtml}</td>
-              <td style="white-space: nowrap;">
-                <span class="badge ${badgeClass}" style="margin-bottom: 4px;">${pkg.status}</span><br>
-                <button class="btn-edit" onclick="event.stopPropagation(); openEditModal('${pkg.firebaseKey}')">✏️ Editar</button>
-                ${actionBtn}
-              </td>
-            </tr>
-          `;
+            filtrarLlamadas();
         });
-      }
     }
 
-    function scrollToPackage(key) {
-      const targetRow = document.getElementById(`pkg-row-${key}`);
-      if (targetRow) {
-        targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        targetRow.classList.remove('highlight-row');
-        void targetRow.offsetWidth;
-        targetRow.classList.add('highlight-row');
-      } else {
-        alert('Este paquete fue entregado o se encuentra registrado en el historial de reportes.');
-      }
+    function registrar(estado, claseColor) {
+        const digitsInput = document.getElementById('digits');
+        const digits = digitsInput.value.trim();
+
+        if (digits.length !== 4 || isNaN(digits)) {
+            alert('Por favor, ingresa únicamente los 4 dígitos numéricos.');
+            digitsInput.focus();
+            return;
+        }
+
+        const todayKey = formatDateToKey(new Date());
+
+        if (selectedDateKey !== todayKey) {
+            alert('Atención: Estabas consultando un día pasado. Tu nuevo registro se guardará en la fecha de HOY.');
+            document.getElementById('dateSelect').value = todayKey;
+            escucharFecha(todayKey);
+        }
+
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        const newCall = {
+            digits: digits,
+            estado: estado,
+            chip: selectedChip,
+            claseColor: claseColor,
+            hora: timeStr,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        };
+
+        db.ref('llamadas/' + todayKey).push(newCall);
+
+        document.getElementById('searchInput').value = '';
+        digitsInput.value = '';
+        digitsInput.focus();
     }
 
-    function generateClientReport() {
-      const clientName = document.getElementById('reportClientInput').value.trim().toLowerCase();
-      const startDateStr = document.getElementById('reportStartDate').value;
-      const endDateStr = document.getElementById('reportEndDate').value;
-      const tbody = document.getElementById('reportTableBody');
-      const summaryDiv = document.getElementById('reportSummary');
+    function renderList(list) {
+        const logList = document.getElementById('logList');
+        logList.innerHTML = '';
 
-      if (!clientName) {
-        tbody.innerHTML = `<tr><td colspan="5" class="empty-message">Escribe el nombre de un cliente arriba para ver sus entregas.</td></tr>`;
-        summaryDiv.textContent = '';
-        return;
-      }
+        if (list.length === 0) {
+            logList.innerHTML = '<li class="empty-msg">No hay registros para la fecha seleccionada.</li>';
+            document.getElementById('counter').innerText = `Total: 0`;
+            return;
+        }
 
-      const startDate = startDateStr ? new Date(startDateStr + 'T00:00:00') : new Date('2000-01-01');
-      const endDate = endDateStr ? new Date(endDateStr + 'T23:59:59') : new Date('2099-12-31');
+        list.forEach(call => {
+            const li = document.createElement('li');
+            li.className = `log-item ${call.claseColor}`;
+            const chipName = call.chip || 'Chip 1';
+            li.innerHTML = `
+                <div class="item-info">
+                    <span class="chip-tag">${chipName}</span>
+                    <span>**** - ${call.digits} | ${call.estado}</span>
+                    <button class="btn-edit" onclick="abrirModal('${call.id}', '${call.digits}')" title="Editar u Opciones">✏️</button>
+                </div>
+                <span class="log-time">${call.hora}</span>
+            `;
+            logList.appendChild(li);
+        });
 
-      const clientDeliveredPackages = packages.filter(p => {
-        const matchesClient = p.person.toLowerCase().includes(clientName);
-        const matchesStatus = p.status === 'Entregado';
-        const signDate = p.signedDate ? new Date(p.signedDate) : new Date(p.entryDate);
-        const matchesDate = signDate >= startDate && signDate <= endDate;
-
-        return matchesClient && matchesStatus && matchesDate;
-      });
-
-      summaryDiv.textContent = `📊 Paquetes Entregados / Firmados a "${document.getElementById('reportClientInput').value}": ${clientDeliveredPackages.length} paquete(s) en este período.`;
-
-      tbody.innerHTML = '';
-      if (clientDeliveredPackages.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="empty-message">No hay paquetes entregados a este cliente en el rango de fechas seleccionado.</td></tr>`;
-        return;
-      }
-
-      clientDeliveredPackages.forEach(pkg => {
-        let photoBtnHtml = pkg.evidencePhoto ? `<button class="btn-photo" onclick="showPhotoModal('${pkg.evidencePhoto}')">📷 Ver Foto</button>` : 'Sin foto';
-
-        tbody.innerHTML += `
-          <tr>
-            <td><small>${pkg.tracking}</small></td>
-            <td><strong>${pkg.person}</strong></td>
-            <td>${formatDate(pkg.entryDate)}</td>
-            <td><span style="color:#16a34a; font-weight:bold;">${formatDate(pkg.signedDate)}</span></td>
-            <td>${photoBtnHtml}</td>
-          </tr>
-        `;
-      });
+        document.getElementById('counter').innerText = `Mostrando: ${list.length} de ${callsLog.length}`;
     }
-  </script>
+
+    function filtrarLlamadas() {
+        const query = document.getElementById('searchInput').value.trim().toLowerCase();
+        
+        if (query === '') {
+            renderList(callsLog);
+            return;
+        }
+
+        const filtered = callsLog.filter(call => 
+            call.digits.includes(query) || 
+            call.estado.toLowerCase().includes(query) ||
+            (call.chip && call.chip.toLowerCase().includes(query))
+        );
+
+        renderList(filtered);
+    }
+
+    /* Funciones para el Modal de Edición y Borrado */
+    function abrirModal(callId, digits) {
+        selectedCallId = callId;
+        document.getElementById('modalTitle').innerText = `Editar o eliminar **** - ${digits}`;
+        document.getElementById('editModal').style.display = 'flex';
+    }
+
+    function cerrarModal() {
+        selectedCallId = null;
+        document.getElementById('editModal').style.display = 'none';
+    }
+
+    function confirmarEdicion(nuevoEstado, nuevaClaseColor) {
+        if (!selectedCallId) return;
+
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        db.ref(`llamadas/${selectedDateKey}/${selectedCallId}`).update({
+            estado: nuevoEstado,
+            claseColor: nuevaClaseColor,
+            hora: `${timeStr} (edit)`
+        });
+
+        cerrarModal();
+    }
+
+    function eliminarRegistro() {
+        if (!selectedCallId) return;
+
+        if (confirm('¿Estás seguro de borrar este número del registro?')) {
+            db.ref(`llamadas/${selectedDateKey}/${selectedCallId}`).remove();
+            cerrarModal();
+        }
+    }
+</script>
+
 </body>
 </html>
