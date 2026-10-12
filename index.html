@@ -153,26 +153,38 @@
         .bg-amarillo { background-color: #f1c40f; color: #333; }
         .bg-rojo { background-color: #e74c3c; color: white; }
 
-        /* Sección del Listado y Buscador */
+        /* Sección del Listado */
         .list-section {
             border-top: 2px solid var(--border-color);
             padding-top: 16px;
         }
 
-        /* Pestañas de Filtrado (Contestó / No Contestó / Todas) */
-        .view-tabs {
-            display: flex;
-            gap: 6px;
+        /* Pestañas Deslizables (Scroll Horizontal) */
+        .view-tabs-container {
+            overflow-x: auto;
+            white-space: nowrap;
             margin-bottom: 12px;
+            padding-bottom: 4px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .view-tabs-container::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .view-tabs-container::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
         }
 
         .tab-btn {
-            flex: 1;
-            padding: 8px 4px;
+            display: inline-block;
+            padding: 8px 12px;
+            margin-right: 6px;
             border: 1px solid var(--border-color);
             background: #f8f9fa;
             color: #495057;
-            border-radius: 6px;
+            border-radius: 20px;
             font-size: 0.8rem;
             font-weight: bold;
             cursor: pointer;
@@ -408,11 +420,16 @@
             <span id="counter" class="counter">Total: 0</span>
         </div>
 
-        <!-- Pestañas para separar los listados -->
-        <div class="view-tabs">
-            <button type="button" class="tab-btn active" id="tabAll" onclick="cambiarFiltroVista('todos')">Todas</button>
-            <button type="button" class="tab-btn" id="tabAnswered" onclick="cambiarFiltroVista('contestaron')">✅ Contestaron</button>
-            <button type="button" class="tab-btn" id="tabPending" onclick="cambiarFiltroVista('pendientes')">📞 Volver a llamar</button>
+        <!-- Pestañas Deslizables por Categoría -->
+        <div class="view-tabs-container">
+            <button type="button" class="tab-btn active" onclick="cambiarFiltroVista('todos', this)">Todas</button>
+            <button type="button" class="tab-btn" onclick="cambiarFiltroVista('reintentar', this)">🔄 Reintentar</button>
+            <button type="button" class="tab-btn" onclick="cambiarFiltroVista('Contestó', this)">✅ Contestaron</button>
+            <button type="button" class="tab-btn" onclick="cambiarFiltroVista('No contestó', this)">🟡 No contestó</button>
+            <button type="button" class="tab-btn" onclick="cambiarFiltroVista('Buzón directo', this)">🔴 Buzón directo</button>
+            <button type="button" class="tab-btn" onclick="cambiarFiltroVista('Inaccesible', this)">🔴 Inaccesible</button>
+            <button type="button" class="tab-btn" onclick="cambiarFiltroVista('Número incorrecto', this)">❌ Incorrecto</button>
+            <button type="button" class="tab-btn" onclick="cambiarFiltroVista('Número no existe', this)">❌ No existe</button>
         </div>
 
         <!-- Buscador -->
@@ -488,15 +505,17 @@
         if (chipName === 'Chip 3') document.getElementById('chip3').classList.add('active');
     }
 
-    function cambiarFiltroVista(tab) {
-        currentTabFilter = tab;
-        document.getElementById('tabAll').classList.remove('active');
-        document.getElementById('tabAnswered').classList.remove('active');
-        document.getElementById('tabPending').classList.remove('active');
+    function cambiarFiltroVista(filterType, btnElement) {
+        currentTabFilter = filterType;
 
-        if (tab === 'todos') document.getElementById('tabAll').classList.add('active');
-        if (tab === 'contestaron') document.getElementById('tabAnswered').classList.add('active');
-        if (tab === 'pendientes') document.getElementById('tabPending').classList.add('active');
+        // Desactivar todos los botones de pestañas
+        const tabs = document.querySelectorAll('.tab-btn');
+        tabs.forEach(tab => tab.classList.remove('active'));
+
+        // Activar la pestaña seleccionada
+        if (btnElement) {
+            btnElement.classList.add('active');
+        }
 
         filtrarLlamadas();
     }
@@ -573,7 +592,7 @@
         logList.innerHTML = '';
 
         if (list.length === 0) {
-            logList.innerHTML = '<li class="empty-msg">No hay registros que coincidan con la categoría seleccionada.</li>';
+            logList.innerHTML = '<li class="empty-msg">No hay registros para este filtro.</li>';
             document.getElementById('counter').innerText = `Total: 0`;
             return;
         }
@@ -604,13 +623,15 @@
         let filtered = callsLog;
 
         // Filtrar según la pestaña activa
-        if (currentTabFilter === 'contestaron') {
-            filtered = filtered.filter(call => call.estado.toLowerCase() === 'contestó');
-        } else if (currentTabFilter === 'pendientes') {
-            filtered = filtered.filter(call => call.estado.toLowerCase() !== 'contestó');
+        if (currentTabFilter === 'reintentar') {
+            // Incluye estados a los que sí vale la pena volver a marcar
+            const reintentarEstados = ['no contestó', 'buzón directo', 'inaccesible'];
+            filtered = filtered.filter(call => reintentarEstados.includes(call.estado.toLowerCase()));
+        } else if (currentTabFilter !== 'todos') {
+            filtered = filtered.filter(call => call.estado.toLowerCase() === currentTabFilter.toLowerCase());
         }
 
-        // Filtrar según el texto de búsqueda
+        // Filtrar según el texto del buscador
         if (query !== '') {
             filtered = filtered.filter(call => 
                 call.digits.includes(query) || 
