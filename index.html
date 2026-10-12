@@ -159,6 +159,32 @@
             padding-top: 16px;
         }
 
+        /* Pestañas de Filtrado (Contestó / No Contestó / Todas) */
+        .view-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 8px 4px;
+            border: 1px solid var(--border-color);
+            background: #f8f9fa;
+            color: #495057;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: #212529;
+            color: #ffffff;
+            border-color: #212529;
+        }
+
         .list-header {
             display: flex;
             justify-content: space-between;
@@ -220,10 +246,19 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .item-info {
+        .item-left {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        .item-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
         }
 
         .chip-tag {
@@ -232,12 +267,14 @@
             border-radius: 4px;
             font-size: 0.75rem;
             font-weight: bold;
+            white-space: nowrap;
         }
 
         .log-time {
             font-size: 0.75rem;
             opacity: 0.85;
             font-weight: normal;
+            white-space: nowrap;
         }
 
         .btn-edit {
@@ -247,8 +284,10 @@
             padding: 4px 8px;
             cursor: pointer;
             font-size: 0.85rem;
-            margin-left: 6px;
             transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .btn-edit:hover {
@@ -369,6 +408,13 @@
             <span id="counter" class="counter">Total: 0</span>
         </div>
 
+        <!-- Pestañas para separar los listados -->
+        <div class="view-tabs">
+            <button type="button" class="tab-btn active" id="tabAll" onclick="cambiarFiltroVista('todos')">Todas</button>
+            <button type="button" class="tab-btn" id="tabAnswered" onclick="cambiarFiltroVista('contestaron')">✅ Contestaron</button>
+            <button type="button" class="tab-btn" id="tabPending" onclick="cambiarFiltroVista('pendientes')">📞 Volver a llamar</button>
+        </div>
+
         <!-- Buscador -->
         <input type="text" id="searchInput" class="search-box" placeholder="🔍 Buscar por 4 dígitos, chip o estado..." oninput="filtrarLlamadas()">
 
@@ -414,6 +460,7 @@
     let selectedDateKey = '';
     let selectedCallId = null;
     let selectedChip = 'Chip 1';
+    let currentTabFilter = 'todos';
 
     function formatDateToKey(dateObj) {
         const year = dateObj.getFullYear();
@@ -439,6 +486,19 @@
         if (chipName === 'Chip 1') document.getElementById('chip1').classList.add('active');
         if (chipName === 'Chip 2') document.getElementById('chip2').classList.add('active');
         if (chipName === 'Chip 3') document.getElementById('chip3').classList.add('active');
+    }
+
+    function cambiarFiltroVista(tab) {
+        currentTabFilter = tab;
+        document.getElementById('tabAll').classList.remove('active');
+        document.getElementById('tabAnswered').classList.remove('active');
+        document.getElementById('tabPending').classList.remove('active');
+
+        if (tab === 'todos') document.getElementById('tabAll').classList.add('active');
+        if (tab === 'contestaron') document.getElementById('tabAnswered').classList.add('active');
+        if (tab === 'pendientes') document.getElementById('tabPending').classList.add('active');
+
+        filtrarLlamadas();
     }
 
     function cambiarFechaConsulta() {
@@ -513,7 +573,7 @@
         logList.innerHTML = '';
 
         if (list.length === 0) {
-            logList.innerHTML = '<li class="empty-msg">No hay registros para la fecha seleccionada.</li>';
+            logList.innerHTML = '<li class="empty-msg">No hay registros que coincidan con la categoría seleccionada.</li>';
             document.getElementById('counter').innerText = `Total: 0`;
             return;
         }
@@ -523,12 +583,14 @@
             li.className = `log-item ${call.claseColor}`;
             const chipName = call.chip || 'Chip 1';
             li.innerHTML = `
-                <div class="item-info">
+                <div class="item-left">
                     <span class="chip-tag">${chipName}</span>
                     <span>**** - ${call.digits} | ${call.estado}</span>
-                    <button class="btn-edit" onclick="abrirModal('${call.id}', '${call.digits}')" title="Editar u Opciones">✏️</button>
                 </div>
-                <span class="log-time">${call.hora}</span>
+                <div class="item-right">
+                    <button class="btn-edit" onclick="abrirModal('${call.id}', '${call.digits}')" title="Editar u Opciones">✏️</button>
+                    <span class="log-time">${call.hora}</span>
+                </div>
             `;
             logList.appendChild(li);
         });
@@ -539,16 +601,23 @@
     function filtrarLlamadas() {
         const query = document.getElementById('searchInput').value.trim().toLowerCase();
         
-        if (query === '') {
-            renderList(callsLog);
-            return;
+        let filtered = callsLog;
+
+        // Filtrar según la pestaña activa
+        if (currentTabFilter === 'contestaron') {
+            filtered = filtered.filter(call => call.estado.toLowerCase() === 'contestó');
+        } else if (currentTabFilter === 'pendientes') {
+            filtered = filtered.filter(call => call.estado.toLowerCase() !== 'contestó');
         }
 
-        const filtered = callsLog.filter(call => 
-            call.digits.includes(query) || 
-            call.estado.toLowerCase().includes(query) ||
-            (call.chip && call.chip.toLowerCase().includes(query))
-        );
+        // Filtrar según el texto de búsqueda
+        if (query !== '') {
+            filtered = filtered.filter(call => 
+                call.digits.includes(query) || 
+                call.estado.toLowerCase().includes(query) ||
+                (call.chip && call.chip.toLowerCase().includes(query))
+            );
+        }
 
         renderList(filtered);
     }
