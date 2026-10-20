@@ -409,7 +409,7 @@
         <button class="btn-status bg-amarillo" onclick="registrar('No contestó', 'bg-amarillo')">No contestó</button>
         <button class="btn-status bg-rojo" onclick="registrar('Número incorrecto', 'bg-rojo')">Número incorrecto</button>
         <button class="btn-status bg-rojo" onclick="registrar('Buzón directo', 'bg-rojo')">Buzón directo</button>
-        <button class="btn-status bg-rojo" onclick="registrar('Inaccesible', 'bg-rojo')">Inaccesible</button>
+        <button class="btn-status bg-rojo" onclick="registrar('Nº no disponible', 'bg-rojo')">Nº no disponible</button>
         <button class="btn-status bg-rojo" onclick="registrar('Número no existe', 'bg-rojo')">Número no existe</button>
     </div>
 
@@ -427,7 +427,7 @@
             <button type="button" class="tab-btn" onclick="cambiarFiltroVista('Contestó', this)">✅ Contestaron</button>
             <button type="button" class="tab-btn" onclick="cambiarFiltroVista('No contestó', this)">🟡 No contestó</button>
             <button type="button" class="tab-btn" onclick="cambiarFiltroVista('Buzón directo', this)">🔴 Buzón directo</button>
-            <button type="button" class="tab-btn" onclick="cambiarFiltroVista('Inaccesible', this)">🔴 Inaccesible</button>
+            <button type="button" class="tab-btn" onclick="cambiarFiltroVista('Nº no disponible', this)">🔴 Nº no disponible</button>
             <button type="button" class="tab-btn" onclick="cambiarFiltroVista('Número incorrecto', this)">❌ Incorrecto</button>
             <button type="button" class="tab-btn" onclick="cambiarFiltroVista('Número no existe', this)">❌ No existe</button>
         </div>
@@ -450,7 +450,7 @@
             <button class="btn-status bg-amarillo" onclick="confirmarEdicion('No contestó', 'bg-amarillo')">No contestó</button>
             <button class="btn-status bg-rojo" onclick="confirmarEdicion('Número incorrecto', 'bg-rojo')">Número incorrecto</button>
             <button class="btn-status bg-rojo" onclick="confirmarEdicion('Buzón directo', 'bg-rojo')">Buzón directo</button>
-            <button class="btn-status bg-rojo" onclick="confirmarEdicion('Inaccesible', 'bg-rojo')">Inaccesible</button>
+            <button class="btn-status bg-rojo" onclick="confirmarEdicion('Nº no disponible', 'bg-rojo')">Nº no disponible</button>
             <button class="btn-status bg-rojo" onclick="confirmarEdicion('Número no existe', 'bg-rojo')">Número no existe</button>
         </div>
         <button class="btn-delete" onclick="eliminarRegistro()">🗑️ Eliminar Registro</button>
@@ -624,8 +624,8 @@
 
         // Filtrar según la pestaña activa
         if (currentTabFilter === 'reintentar') {
-            // Incluye estados a los que sí vale la pena volver a marcar
-            const reintentarEstados = ['no contestó', 'buzón directo', 'inaccesible'];
+            // Incluye estados a los que sí vale la pena volver a marcar (incluye inaccesible por compatibilidad histórica)
+            const reintentarEstados = ['no contestó', 'buzón directo', 'nº no disponible', 'inaccesible'];
             filtered = filtered.filter(call => reintentarEstados.includes(call.estado.toLowerCase()));
         } else if (currentTabFilter !== 'todos') {
             filtered = filtered.filter(call => call.estado.toLowerCase() === currentTabFilter.toLowerCase());
