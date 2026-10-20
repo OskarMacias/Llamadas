@@ -308,6 +308,16 @@
             white-space: nowrap;
         }
 
+        .intentos-tag {
+            background: rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            padding: 1px 5px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-left: 4px;
+        }
+
         .log-time {
             font-size: 0.7rem;
             opacity: 0.85;
@@ -633,16 +643,41 @@
         const now = new Date();
         const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        const newCall = {
-            digits: digits,
-            estado: estado,
-            chip: chipVal,
-            claseColor: claseColor,
-            hora: timeStr,
-            timestamp: firebase.database.ServerValue.TIMESTAMP
-        };
+        // Verificar si este número ya tiene un registro previo en la fecha actual
+        const registroExistente = callsLog.find(item => item.digits === digits);
 
-        db.ref('llamadas/' + todayKey).push(newCall);
+        if (registroExistente) {
+            // REINTENTO DE LLAMADA
+            const nuevosIntentos = (registroExistente.intentos || 1) + 1;
+            
+            // Si antes no contestó pero ahora sí contestó, actualizar estado principal a verde
+            const nuevoEstado = estado;
+            const nuevaClase = claseColor;
+
+            db.ref(`llamadas/${todayKey}/${registroExistente.id}`).update({
+                estado: nuevoEstado,
+                claseColor: nuevaClase,
+                chip: chipVal,
+                intentos: nuevosIntentos,
+                historial: (registroExistente.historial || registroExistente.estado) + ` ➔ ${estado}`,
+                hora: timeStr,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+        } else {
+            // PRIMER REGISTRO
+            const newCall = {
+                digits: digits,
+                estado: estado,
+                chip: chipVal,
+                claseColor: claseColor,
+                intentos: 1,
+                historial: estado,
+                hora: timeStr,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            };
+
+            db.ref('llamadas/' + todayKey).push(newCall);
+        }
 
         digitsInput.value = '';
         filtrarLlamadas();
@@ -663,10 +698,14 @@
             const li = document.createElement('li');
             li.className = `log-item ${call.claseColor}`;
             const chipName = call.chip || 'Chip 1';
+            const numIntentos = call.intentos && call.intentos > 1 ? `<span class="intentos-tag">⚠️ ${call.intentos}º intento</span>` : '';
+            const detalleHistorial = call.historial && call.intentos > 1 ? ` (${call.historial})` : '';
+
             li.innerHTML = `
                 <div class="item-left">
                     <span class="chip-tag">${chipName}</span>
-                    <span>**** - ${call.digits} | ${call.estado}</span>
+                    <span>**** - ${call.digits} | ${call.estado}${detalleHistorial}</span>
+                    ${numIntentos}
                 </div>
                 <div class="item-right">
                     <button class="btn-edit" onclick="abrirModal('${call.id}', '${call.digits}')" title="Editar u Opciones">✏️</button>
