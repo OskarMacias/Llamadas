@@ -217,22 +217,6 @@
             font-weight: 600;
         }
 
-        /* Campo de Búsqueda */
-        .search-box {
-            width: 100%;
-            padding: 10px;
-            font-size: 0.95rem;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            margin-bottom: 12px;
-            box-sizing: border-box;
-            outline: none;
-        }
-
-        .search-box:focus {
-            border-color: #3498db;
-        }
-
         ul {
             list-style: none;
             padding: 0;
@@ -397,10 +381,10 @@
         <button type="button" class="chip-btn" id="chip3" onclick="seleccionarChip('Chip 3')">Chip 3</button>
     </div>
 
-    <!-- Renglón para ingresar los 4 dígitos (Arriba) -->
+    <!-- Renglón para ingresar y buscar los 4 dígitos (Arriba) -->
     <div class="input-section">
-        <label for="digits">Últimos 4 dígitos del teléfono:</label>
-        <input type="text" id="digits" class="phone-input" maxlength="4" placeholder="1234" inputmode="numeric" autofocus>
+        <label for="digits">Últimos 4 dígitos del teléfono (escribe para buscar/capturar):</label>
+        <input type="text" id="digits" class="phone-input" maxlength="4" placeholder="1234" inputmode="numeric" oninput="filtrarLlamadas()" autofocus>
     </div>
 
     <!-- Opciones de Estado (Abajo) -->
@@ -431,9 +415,6 @@
             <button type="button" class="tab-btn" onclick="cambiarFiltroVista('Número incorrecto', this)">❌ Incorrecto</button>
             <button type="button" class="tab-btn" onclick="cambiarFiltroVista('Número no existe', this)">❌ No existe</button>
         </div>
-
-        <!-- Buscador -->
-        <input type="text" id="searchInput" class="search-box" placeholder="🔍 Buscar por 4 dígitos, chip o estado..." oninput="filtrarLlamadas()">
 
         <ul id="logList">
             <li class="empty-msg" id="emptyMsg">Cargando registros...</li>
@@ -508,11 +489,9 @@
     function cambiarFiltroVista(filterType, btnElement) {
         currentTabFilter = filterType;
 
-        // Desactivar todos los botones de pestañas
         const tabs = document.querySelectorAll('.tab-btn');
         tabs.forEach(tab => tab.classList.remove('active'));
 
-        // Activar la pestaña seleccionada
         if (btnElement) {
             btnElement.classList.add('active');
         }
@@ -582,8 +561,9 @@
 
         db.ref('llamadas/' + todayKey).push(newCall);
 
-        document.getElementById('searchInput').value = '';
+        // Limpiar entrada y mostrar lista completa de nuevo
         digitsInput.value = '';
+        filtrarLlamadas();
         digitsInput.focus();
     }
 
@@ -618,20 +598,19 @@
     }
 
     function filtrarLlamadas() {
-        const query = document.getElementById('searchInput').value.trim().toLowerCase();
+        const query = document.getElementById('digits').value.trim().toLowerCase();
         
         let filtered = callsLog;
 
         // Filtrar según la pestaña activa
         if (currentTabFilter === 'reintentar') {
-            // Incluye estados a los que sí vale la pena volver a marcar (incluye inaccesible por compatibilidad histórica)
             const reintentarEstados = ['no contestó', 'buzón directo', 'nº no disponible', 'inaccesible'];
             filtered = filtered.filter(call => reintentarEstados.includes(call.estado.toLowerCase()));
         } else if (currentTabFilter !== 'todos') {
             filtered = filtered.filter(call => call.estado.toLowerCase() === currentTabFilter.toLowerCase());
         }
 
-        // Filtrar según el texto del buscador
+        // Filtrar según lo escrito en el renglón principal
         if (query !== '') {
             filtered = filtered.filter(call => 
                 call.digits.includes(query) || 
