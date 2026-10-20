@@ -1,1 +1,808 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Llamadas - Paquetería</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 650px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        h2 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: #1a252f;
+        }
+
+        /* Selector de Fecha Histórica */
+        .date-picker-section {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #e9ecef;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .date-picker-section label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .date-input {
+            padding: 5px 8px;
+            border-radius: 6px;
+            border: 1px solid #ced4da;
+            font-size: 0.9rem;
+            font-weight: bold;
+            outline: none;
+        }
+
+        /* Selector de Modo (1 o 2 llamadas) */
+        .mode-toggle {
+            display: flex;
+            background: #e2e8f0;
+            border-radius: 8px;
+            padding: 4px;
+            margin-bottom: 16px;
+            gap: 4px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            font-weight: bold;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            cursor: pointer;
+            color: #475569;
+            transition: all 0.2s;
+        }
+
+        .mode-btn.active {
+            background: #ffffff;
+            color: #0f172a;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Contenedor de Captura (1 o 2 columnas) */
+        .capture-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .capture-grid.dual {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .capture-card {
+            background: #f8fafc;
+            border: 2px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 12px;
+            box-sizing: border-box;
+        }
+
+        .capture-card-title {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #0d6efd;
+            margin-bottom: 8px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Selector de Chip */
+        .chip-selection {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 10px;
+        }
+
+        .chip-btn {
+            flex: 1;
+            padding: 6px 2px;
+            border: 1px solid #0d6efd;
+            background: #ffffff;
+            color: #0d6efd;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chip-btn.active {
+            background: #0d6efd;
+            color: #ffffff;
+        }
+
+        /* Input Teléfono */
+        .phone-input {
+            width: 100%;
+            padding: 8px;
+            font-size: 1.1rem;
+            text-align: center;
+            letter-spacing: 3px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            box-sizing: border-box;
+            outline: none;
+            margin-bottom: 10px;
+            transition: border-color 0.2s;
+        }
+
+        .phone-input:focus {
+            border-color: #3498db;
+        }
+
+        /* Botones de Estado */
+        .status-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .btn-status {
+            padding: 8px 4px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.75rem;
+            cursor: pointer;
+            color: white;
+            transition: transform 0.1s, opacity 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .btn-status:active {
+            transform: scale(0.97);
+        }
+
+        /* Colores Específicos */
+        .bg-verde { background-color: #2ecc71; color: white; }
+        .bg-amarillo { background-color: #f1c40f; color: #333; }
+        .bg-rojo { background-color: #e74c3c; color: white; }
+
+        /* Sección del Listado */
+        .list-section {
+            border-top: 2px solid var(--border-color);
+            padding-top: 14px;
+        }
+
+        .view-tabs-container {
+            overflow-x: auto;
+            white-space: nowrap;
+            margin-bottom: 12px;
+            padding-bottom: 4px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .view-tabs-container::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .view-tabs-container::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+
+        .tab-btn {
+            display: inline-block;
+            padding: 6px 10px;
+            margin-right: 4px;
+            border: 1px solid var(--border-color);
+            background: #f8f9fa;
+            color: #495057;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: #212529;
+            color: #ffffff;
+            border-color: #212529;
+        }
+
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .list-header h3 {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .counter {
+            font-size: 0.8rem;
+            background: #e9ecef;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 320px;
+            overflow-y: auto;
+        }
+
+        .log-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .item-left {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        .item-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .chip-tag {
+            background: rgba(0, 0, 0, 0.15);
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .intentos-tag {
+            background: rgba(255, 255, 255, 0.35);
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-left: 4px;
+            white-space: nowrap;
+        }
+
+        .log-time {
+            font-size: 0.7rem;
+            opacity: 0.85;
+            font-weight: normal;
+            white-space: nowrap;
+        }
+
+        .btn-edit {
+            background: rgba(255, 255, 255, 0.3);
+            border: none;
+            border-radius: 4px;
+            padding: 3px 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background 0.2s;
+        }
+
+        .btn-edit:hover {
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        .empty-msg {
+            text-align: center;
+            color: #888;
+            font-style: italic;
+            padding: 20px;
+        }
+
+        /* Ventana Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 380px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        .modal-buttons {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            margin-top: 10px;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            margin-top: 6px;
+            width: 100%;
+            cursor: pointer;
+        }
+    </style>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <h2>Registro de Llamadas</h2>
+
+    <!-- Fecha -->
+    <div class="date-picker-section">
+        <label for="dateSelect">📅 Consultar Fecha:</label>
+        <input type="date" id="dateSelect" class="date-input" onchange="cambiarFechaConsulta()">
+    </div>
+
+    <!-- Toggle de Modo (1 o 2 llamadas) -->
+    <div class="mode-toggle">
+        <button type="button" class="mode-btn active" id="btnModeSingle" onclick="setModo(1)">📱 1 Llamada</button>
+        <button type="button" class="mode-btn" id="btnModeDual" onclick="setModo(2)">📱📱 2 Llamadas a la vez</button>
+    </div>
+
+    <!-- Módulos de Captura -->
+    <div class="capture-grid" id="captureGrid">
+        
+        <!-- Tarjeta Llamada 1 / A -->
+        <div class="capture-card">
+            <div class="capture-card-title" id="titleCardA" style="display:none;">Llamada A</div>
+            <div class="chip-selection">
+                <button type="button" class="chip-btn active" id="chipA1" onclick="seleccionarChip('A', 'Chip 1')">Chip 1</button>
+                <button type="button" class="chip-btn" id="chipA2" onclick="seleccionarChip('A', 'Chip 2')">Chip 2</button>
+                <button type="button" class="chip-btn" id="chipA3" onclick="seleccionarChip('A', 'Chip 3')">Chip 3</button>
+            </div>
+            <input type="text" id="digitsA" class="phone-input" maxlength="4" placeholder="4 dígitos" inputmode="numeric" oninput="filtrarLlamadas()" autofocus>
+            
+            <div class="status-buttons">
+                <button class="btn-status bg-verde" onclick="registrar('A', 'Contestó', 'bg-verde')">Contestó</button>
+                <button class="btn-status bg-amarillo" onclick="registrar('A', 'No contestó', 'bg-amarillo')">No contestó</button>
+                <button class="btn-status bg-rojo" onclick="registrar('A', 'Número incorrecto', 'bg-rojo')">Nº Incorrecto</button>
+                <button class="btn-status bg-rojo" onclick="registrar('A', 'Buzón directo', 'bg-rojo')">Buzón directo</button>
+                <button class="btn-status bg-rojo" onclick="registrar('A', 'Nº no disponible', 'bg-rojo')">Nº no disponible</button>
+                <button class="btn-status bg-rojo" onclick="registrar('A', 'Número no existe', 'bg-rojo')">Nº no existe</button>
+            </div>
+        </div>
+
+        <!-- Tarjeta Llamada 2 / B (Oculta por defecto) -->
+        <div class="capture-card" id="cardB" style="display:none;">
+            <div class="capture-card-title">Llamada B</div>
+            <div class="chip-selection">
+                <button type="button" class="chip-btn" id="chipB1" onclick="seleccionarChip('B', 'Chip 1')">Chip 1</button>
+                <button type="button" class="chip-btn active" id="chipB2" onclick="seleccionarChip('B', 'Chip 2')">Chip 2</button>
+                <button type="button" class="chip-btn" id="chipB3" onclick="seleccionarChip('B', 'Chip 3')">Chip 3</button>
+            </div>
+            <input type="text" id="digitsB" class="phone-input" maxlength="4" placeholder="4 dígitos" inputmode="numeric" oninput="filtrarLlamadas()">
+            
+            <div class="status-buttons">
+                <button class="btn-status bg-verde" onclick="registrar('B', 'Contestó', 'bg-verde')">Contestó</button>
+                <button class="btn-status bg-amarillo" onclick="registrar('B', 'No contestó', 'bg-amarillo')">No contestó</button>
+                <button class="btn-status bg-rojo" onclick="registrar('B', 'Número incorrecto', 'bg-rojo')">Nº Incorrecto</button>
+                <button class="btn-status bg-rojo" onclick="registrar('B', 'Buzón directo', 'bg-rojo')">Buzón directo</button>
+                <button class="btn-status bg-rojo" onclick="registrar('B', 'Nº no disponible', 'bg-rojo')">Nº no disponible</button>
+                <button class="btn-status bg-rojo" onclick="registrar('B', 'Número no existe', 'bg-rojo')">Nº no existe</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Historial de Registro -->
+    <div class="list-section">
+        <div class="list-header">
+            <h3>Listado de Llamadas</h3>
+            <span id="counter" class="counter">Total: 0</span>
+        </div>
+
+        <div class="view-tabs-container">
+            <button type="button" class="tab-btn active" onclick="cambiarFiltroVista('todos', this)">Todas</button>
+            <button type="button" class="tab-btn" onclick="cambiarFiltroVista('reintentar', this)">🔄 Reintentar</button>
+            <button type="button" class="tab-btn" onclick="cambiarFiltroVista('Contestó', this)">✅ Contestaron</button>
+            <button type="button" class="tab-btn" onclick="cambiarFiltroVista('No contestó', this)">🟡 No contestó</button>
+            <button type="button" class="tab-btn" onclick="cambiarFiltroVista('Buzón directo', this)">🔴 Buzón directo</button>
+            <button type="button" class="tab-btn" onclick="cambiarFiltroVista('Nº no disponible', this)">🔴 Nº no disponible</button>
+            <button type="button" class="tab-btn" onclick="cambiarFiltroVista('Número incorrecto', this)">❌ Incorrecto</button>
+            <button type="button" class="tab-btn" onclick="cambiarFiltroVista('Número no existe', this)">❌ No existe</button>
+        </div>
+
+        <ul id="logList">
+            <li class="empty-msg" id="emptyMsg">Cargando registros...</li>
+        </ul>
+    </div>
+</div>
+
+<!-- Modal Edición/Borrado -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal-content">
+        <h3 id="modalTitle">Cambiar estado del número</h3>
+        <div class="modal-buttons">
+            <button class="btn-status bg-verde" onclick="confirmarEdicion('Contestó', 'bg-verde')">Contestó</button>
+            <button class="btn-status bg-amarillo" onclick="confirmarEdicion('No contestó', 'bg-amarillo')">No contestó</button>
+            <button class="btn-status bg-rojo" onclick="confirmarEdicion('Número incorrecto', 'bg-rojo')">Número incorrecto</button>
+            <button class="btn-status bg-rojo" onclick="confirmarEdicion('Buzón directo', 'bg-rojo')">Buzón directo</button>
+            <button class="btn-status bg-rojo" onclick="confirmarEdicion('Nº no disponible', 'bg-rojo')">Nº no disponible</button>
+            <button class="btn-status bg-rojo" onclick="confirmarEdicion('Número no existe', 'bg-rojo')">Número no existe</button>
+        </div>
+        <button class="btn-delete" onclick="eliminarRegistro()">🗑️ Eliminar Registro</button>
+        <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAhFORcZkm0vRUywEdbL2d_cJCHdH2bn8Q",
+        authDomain: "llamadas-paqueteria.firebaseapp.com",
+        databaseURL: "https://llamadas-paqueteria-default-rtdb.firebaseio.com",
+        projectId: "llamadas-paqueteria",
+        storageBucket: "llamadas-paqueteria.firebasestorage.app",
+        messagingSenderId: "549464406395",
+        appId: "1:549464406395:web:d001d5854c1c80dc9e65de"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let callsLog = [];
+    let currentListener = null;
+    let selectedDateKey = '';
+    let selectedCallId = null;
+    let selectedChipA = 'Chip 1';
+    let selectedChipB = 'Chip 2';
+    let currentTabFilter = 'todos';
+    let modoLlamadas = 1;
+
+    function formatDateToKey(dateObj) {
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    window.onload = function() {
+        const todayStr = formatDateToKey(new Date());
+        document.getElementById('dateSelect').value = todayStr;
+        escucharFecha(todayStr);
+    };
+
+    function setModo(modo) {
+        modoLlamadas = modo;
+        const grid = document.getElementById('captureGrid');
+        const cardB = document.getElementById('cardB');
+        const titleA = document.getElementById('titleCardA');
+        const btnSingle = document.getElementById('btnModeSingle');
+        const btnDual = document.getElementById('btnModeDual');
+
+        if (modo === 2) {
+            grid.classList.add('dual');
+            cardB.style.display = 'block';
+            titleA.style.display = 'block';
+            btnSingle.classList.remove('active');
+            btnDual.classList.add('active');
+        } else {
+            grid.classList.remove('dual');
+            cardB.style.display = 'none';
+            titleA.style.display = 'none';
+            btnSingle.classList.add('active');
+            btnDual.classList.remove('active');
+        }
+        filtrarLlamadas();
+    }
+
+    function seleccionarChip(lado, chipName) {
+        if (lado === 'A') {
+            selectedChipA = chipName;
+            document.getElementById('chipA1').classList.remove('active');
+            document.getElementById('chipA2').classList.remove('active');
+            document.getElementById('chipA3').classList.remove('active');
+            if (chipName === 'Chip 1') document.getElementById('chipA1').classList.add('active');
+            if (chipName === 'Chip 2') document.getElementById('chipA2').classList.add('active');
+            if (chipName === 'Chip 3') document.getElementById('chipA3').classList.add('active');
+        } else {
+            selectedChipB = chipName;
+            document.getElementById('chipB1').classList.remove('active');
+            document.getElementById('chipB2').classList.remove('active');
+            document.getElementById('chipB3').classList.remove('active');
+            if (chipName === 'Chip 1') document.getElementById('chipB1').classList.add('active');
+            if (chipName === 'Chip 2') document.getElementById('chipB2').classList.add('active');
+            if (chipName === 'Chip 3') document.getElementById('chipB3').classList.add('active');
+        }
+    }
+
+    function cambiarFiltroVista(filterType, btnElement) {
+        currentTabFilter = filterType;
+        document.querySelectorAll('.tab-btn').forEach(tab => tab.classList.remove('active'));
+        if (btnElement) btnElement.classList.add('active');
+        filtrarLlamadas();
+    }
+
+    function cambiarFechaConsulta() {
+        const newDate = document.getElementById('dateSelect').value;
+        if (newDate) escucharFecha(newDate);
+    }
+
+    function escucharFecha(dateKey) {
+        selectedDateKey = dateKey;
+        if (currentListener) currentListener.off();
+
+        currentListener = db.ref('llamadas/' + dateKey);
+        currentListener.on('value', (snapshot) => {
+            const data = snapshot.val();
+            callsLog = [];
+            if (data) {
+                Object.keys(data).forEach(key => {
+                    callsLog.unshift({ id: key, ...data[key] });
+                });
+            }
+            filtrarLlamadas();
+        });
+    }
+
+    function registrar(lado, estado, claseColor) {
+        const inputId = lado === 'A' ? 'digitsA' : 'digitsB';
+        const chipVal = lado === 'A' ? selectedChipA : selectedChipB;
+        const digitsInput = document.getElementById(inputId);
+        const digits = digitsInput.value.trim();
+
+        if (digits.length !== 4 || isNaN(digits)) {
+            alert('Ingresa los 4 dígitos numéricos.');
+            digitsInput.focus();
+            return;
+        }
+
+        const todayKey = formatDateToKey(new Date());
+
+        if (selectedDateKey !== todayKey) {
+            alert('Atención: Registrando en la fecha de HOY.');
+            document.getElementById('dateSelect').value = todayKey;
+            escucharFecha(todayKey);
+        }
+
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        // Buscar todos los registros coincidentes existentes para unificarlos
+        const coincidencias = callsLog.filter(item => item.digits === digits);
+
+        if (coincidencias.length > 0) {
+            // El principal será el primero (más reciente o que queramos conservar)
+            const principal = coincidencias[0];
+
+            // Recomponer el historial sumando los intentos de todos los duplicados previos
+            let historialPrevio = '';
+            let intentosPrevios = 0;
+
+            coincidencias.reverse().forEach(item => {
+                if (item.historial) {
+                    historialPrevio += (historialPrevio ? ' ➔ ' : '') + item.historial;
+                } else {
+                    historialPrevio += (historialPrevio ? ' ➔ ' : '') + item.estado;
+                }
+                intentosPrevios += (item.intentos || 1);
+            });
+
+            const nuevosIntentos = intentosPrevios + 1;
+            const nuevoHistorial = historialPrevio + ' ➔ ' + estado;
+
+            // Determinar si en algún momento contestó para marcar como Verde
+            const yaContesto = nuevoHistorial.toLowerCase().includes('contestó');
+            const estadoFinal = estado === 'Contestó' || yaContesto ? 'Contestó' : estado;
+            const claseFinal = estado === 'Contestó' || yaContesto ? 'bg-verde' : claseColor;
+
+            // Actualizar el registro principal
+            db.ref(`llamadas/${todayKey}/${principal.id}`).update({
+                estado: estadoFinal,
+                claseColor: claseFinal,
+                chip: chipVal,
+                intentos: nuevosIntentos,
+                historial: nuevoHistorial,
+                hora: timeStr,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+
+            // Borrar los duplicados antiguos si los había
+            for (let i = 1; i < coincidencias.length; i++) {
+                db.ref(`llamadas/${todayKey}/${coincidencias[i].id}`).remove();
+            }
+
+        } else {
+            // PRIMER REGISTRO
+            const newCall = {
+                digits: digits,
+                estado: estado,
+                chip: chipVal,
+                claseColor: claseColor,
+                intentos: 1,
+                historial: estado,
+                hora: timeStr,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            };
+
+            db.ref('llamadas/' + todayKey).push(newCall);
+        }
+
+        digitsInput.value = '';
+        filtrarLlamadas();
+        digitsInput.focus();
+    }
+
+    function renderList(list) {
+        const logList = document.getElementById('logList');
+        logList.innerHTML = '';
+
+        if (list.length === 0) {
+            logList.innerHTML = '<li class="empty-msg">No hay registros.</li>';
+            document.getElementById('counter').innerText = `Total: 0`;
+            return;
+        }
+
+        list.forEach(call => {
+            const li = document.createElement('li');
+            li.className = `log-item ${call.claseColor}`;
+            const chipName = call.chip || 'Chip 1';
+            const numIntentos = call.intentos && call.intentos > 1 ? `<span class="intentos-tag">⚠️ ${call.intentos}º intento</span>` : '';
+            const detalleHistorial = call.historial && call.intentos > 1 ? ` (${call.historial})` : '';
+
+            li.innerHTML = `
+                <div class="item-left">
+                    <span class="chip-tag">${chipName}</span>
+                    <span>**** - ${call.digits} | ${call.estado}${detalleHistorial}</span>
+                    ${numIntentos}
+                </div>
+                <div class="item-right">
+                    <button class="btn-edit" onclick="abrirModal('${call.id}', '${call.digits}')" title="Editar u Opciones">✏️</button>
+                    <span class="log-time">${call.hora}</span>
+                </div>
+            `;
+            logList.appendChild(li);
+        });
+
+        document.getElementById('counter').innerText = `Mostrando: ${list.length} de ${callsLog.length}`;
+    }
+
+    function filtrarLlamadas() {
+        const queryA = document.getElementById('digitsA').value.trim().toLowerCase();
+        const queryB = modoLlamadas === 2 ? document.getElementById('digitsB').value.trim().toLowerCase() : '';
+        
+        let filtered = callsLog;
+
+        if (currentTabFilter === 'reintentar') {
+            const reintentarEstados = ['no contestó', 'buzón directo', 'nº no disponible', 'inaccesible'];
+            filtered = filtered.filter(call => reintentarEstados.includes(call.estado.toLowerCase()));
+        } else if (currentTabFilter !== 'todos') {
+            filtered = filtered.filter(call => call.estado.toLowerCase() === currentTabFilter.toLowerCase());
+        }
+
+        if (queryA !== '' || queryB !== '') {
+            filtered = filtered.filter(call => {
+                const matchA = queryA !== '' && (call.digits.includes(queryA) || call.estado.toLowerCase().includes(queryA));
+                const matchB = queryB !== '' && (call.digits.includes(queryB) || call.estado.toLowerCase().includes(queryB));
+                return matchA || matchB;
+            });
+        }
+
+        renderList(filtered);
+    }
+
+    function abrirModal(callId, digits) {
+        selectedCallId = callId;
+        document.getElementById('modalTitle').innerText = `Editar o eliminar **** - ${digits}`;
+        document.getElementById('editModal').style.display = 'flex';
+    }
+
+    function cerrarModal() {
+        selectedCallId = null;
+        document.getElementById('editModal').style.display = 'none';
+    }
+
+    function confirmarEdicion(nuevoEstado, nuevaClaseColor) {
+        if (!selectedCallId) return;
+
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        db.ref(`llamadas/${selectedDateKey}/${selectedCallId}`).update({
+            estado: nuevoEstado,
+            claseColor: nuevaClaseColor,
+            hora: `${timeStr} (edit)`
+        });
+
+        cerrarModal();
+    }
+
+    function eliminarRegistro() {
+        if (!selectedCallId) return;
+
+        if (confirm('¿Estás seguro de borrar este número del registro?')) {
+            db.ref(`llamadas/${selectedDateKey}/${selectedCallId}`).remove();
+            cerrarModal();
+        }
+    }
+</script>
+
+</body>
+</html>
 
