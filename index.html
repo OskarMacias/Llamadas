@@ -277,6 +277,11 @@
             font-weight: 600;
             font-size: 0.85rem;
             animation: fadeIn 0.3s ease-in-out;
+            cursor: pointer;
+        }
+
+        .log-item:hover {
+            filter: brightness(0.95);
         }
 
         @keyframes fadeIn {
@@ -404,6 +409,26 @@
             width: 100%;
             cursor: pointer;
         }
+
+        /* Estilos del Historial Detallado */
+        .history-list {
+            margin-top: 12px;
+            padding: 0;
+            list-style: none;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            background: #f1f5f9;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
     </style>
 
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -508,7 +533,17 @@
             <button class="btn-status bg-rojo" onclick="confirmarEdicion('Número no existe', 'bg-rojo')">Número no existe</button>
         </div>
         <button class="btn-delete" onclick="eliminarRegistro()">🗑️ Eliminar Registro</button>
-        <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn-cancel" onclick="cerrarModal('editModal')">Cancelar</button>
+    </div>
+</div>
+
+<!-- Modal Historial Detallado por Horas -->
+<div class="modal-overlay" id="detailsModal">
+    <div class="modal-content">
+        <h3 id="detailsTitle">Historial de Llamadas</h3>
+        <p style="text-align: center; margin: 5px 0; font-size: 0.85rem; color: #555;" id="detailsSubtitle"></p>
+        <ul class="history-list" id="historyListContent"></ul>
+        <button class="btn-cancel" onclick="cerrarModal('detailsModal')">Cerrar</button>
     </div>
 </div>
 
@@ -644,52 +679,55 @@
         const now = new Date();
         const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        // Buscar todos los registros coincidentes existentes para unificarlos
+        const nuevoIntentoItem = {
+            hora: timeStr,
+            chip: chipVal,
+            estado: estado
+        };
+
         const coincidencias = callsLog.filter(item => item.digits === digits);
 
         if (coincidencias.length > 0) {
-            // El principal será el primero (más reciente o que queramos conservar)
             const principal = coincidencias[0];
 
-            // Recomponer el historial sumando los intentos de todos los duplicados previos
-            let historialPrevio = '';
-            let intentosPrevios = 0;
-
+            let historialDetallado = [];
             coincidencias.reverse().forEach(item => {
-                if (item.historial) {
-                    historialPrevio += (historialPrevio ? ' ➔ ' : '') + item.historial;
+                if (item.desglose && Array.isArray(item.desglose)) {
+                    historialDetallado = historialDetallado.concat(item.desglose);
                 } else {
-                    historialPrevio += (historialPrevio ? ' ➔ ' : '') + item.estado;
+                    historialDetallado.push({
+                        hora: item.hora,
+                        chip: item.chip || 'Chip 1',
+                        estado: item.estado
+                    });
                 }
-                intentosPrevios += (item.intentos || 1);
             });
 
-            const nuevosIntentos = intentosPrevios + 1;
-            const nuevoHistorial = historialPrevio + ' ➔ ' + estado;
+            historialDetallado.push(nuevoIntentoItem);
 
-            // Determinar si en algún momento contestó para marcar como Verde
-            const yaContesto = nuevoHistorial.toLowerCase().includes('contestó');
+            const nuevosIntentos = historialDetallado.length;
+            const nuevoHistorialTexto = historialDetallado.map(h => h.estado).join(' ➔ ');
+
+            const yaContesto = nuevoHistorialTexto.toLowerCase().includes('contestó');
             const estadoFinal = estado === 'Contestó' || yaContesto ? 'Contestó' : estado;
             const claseFinal = estado === 'Contestó' || yaContesto ? 'bg-verde' : claseColor;
 
-            // Actualizar el registro principal
             db.ref(`llamadas/${todayKey}/${principal.id}`).update({
                 estado: estadoFinal,
                 claseColor: claseFinal,
                 chip: chipVal,
                 intentos: nuevosIntentos,
-                historial: nuevoHistorial,
+                historial: nuevoHistorialTexto,
+                desglose: historialDetallado,
                 hora: timeStr,
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             });
 
-            // Borrar los duplicados antiguos si los había
             for (let i = 1; i < coincidencias.length; i++) {
                 db.ref(`llamadas/${todayKey}/${coincidencias[i].id}`).remove();
             }
 
         } else {
-            // PRIMER REGISTRO
             const newCall = {
                 digits: digits,
                 estado: estado,
@@ -697,6 +735,7 @@
                 claseColor: claseColor,
                 intentos: 1,
                 historial: estado,
+                desglose: [nuevoIntentoItem],
                 hora: timeStr,
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             };
@@ -725,6 +764,12 @@
             const chipName = call.chip || 'Chip 1';
             const numIntentos = call.intentos && call.intentos > 1 ? `<span class="intentos-tag">⚠️ ${call.intentos}º intento</span>` : '';
             const detalleHistorial = call.historial && call.intentos > 1 ? ` (${call.historial})` : '';
+
+            li.onclick = (e) => {
+                if (!e.target.classList.contains('btn-edit')) {
+                    abrirDetallesModal(call);
+                }
+            };
 
             li.innerHTML = `
                 <div class="item-left">
@@ -773,9 +818,38 @@
         document.getElementById('editModal').style.display = 'flex';
     }
 
-    function cerrarModal() {
-        selectedCallId = null;
-        document.getElementById('editModal').style.display = 'none';
+    function abrirDetallesModal(call) {
+        document.getElementById('detailsTitle').innerText = `**** - ${call.digits}`;
+        document.getElementById('detailsSubtitle').innerText = `Total de llamadas del día: ${call.intentos || 1}`;
+        
+        const historyList = document.getElementById('historyListContent');
+        historyList.innerHTML = '';
+
+        const desglose = call.desglose || [{
+            hora: call.hora,
+            chip: call.chip || 'Chip 1',
+            estado: call.estado
+        }];
+
+        desglose.forEach((item, index) => {
+            const li = document.createElement('li');
+            li.className = 'history-item';
+            li.innerHTML = `
+                <div>
+                    <strong>${index + 1}º Llamada:</strong> ${item.estado}
+                    <div style="font-size:0.75rem; color:#666;">Línea: ${item.chip}</div>
+                </div>
+                <div style="font-weight:bold; color:#0d6efd;">${item.hora}</div>
+            `;
+            historyList.appendChild(li);
+        });
+
+        document.getElementById('detailsModal').style.display = 'flex';
+    }
+
+    function cerrarModal(modalId) {
+        if (modalId === 'editModal') selectedCallId = null;
+        document.getElementById(modalId).style.display = 'none';
     }
 
     function confirmarEdicion(nuevoEstado, nuevaClaseColor) {
@@ -790,7 +864,7 @@
             hora: `${timeStr} (edit)`
         });
 
-        cerrarModal();
+        cerrarModal('editModal');
     }
 
     function eliminarRegistro() {
@@ -798,11 +872,10 @@
 
         if (confirm('¿Estás seguro de borrar este número del registro?')) {
             db.ref(`llamadas/${selectedDateKey}/${selectedCallId}`).remove();
-            cerrarModal();
+            cerrarModal('editModal');
         }
     }
 </script>
 
 </body>
 </html>
-
