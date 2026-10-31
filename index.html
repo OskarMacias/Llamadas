@@ -708,9 +708,11 @@
             const nuevosIntentos = historialDetallado.length;
             const nuevoHistorialTexto = historialDetallado.map(h => h.estado).join(' ➔ ');
 
-            const yaContesto = nuevoHistorialTexto.toLowerCase().includes('contestó');
-            const estadoFinal = estado === 'Contestó' || yaContesto ? 'Contestó' : estado;
-            const claseFinal = estado === 'Contestó' || yaContesto ? 'bg-verde' : claseColor;
+            // CORRECCIÓN EXACTA: Comprobar estrictamente si alguna llamada individual fue "Contestó"
+            const algunIntentoContesto = historialDetallado.some(h => h.estado === 'Contestó');
+
+            const estadoFinal = (estado === 'Contestó' || algunIntentoContesto) ? 'Contestó' : estado;
+            const claseFinal = (estado === 'Contestó' || algunIntentoContesto) ? 'bg-verde' : claseColor;
 
             db.ref(`llamadas/${todayKey}/${principal.id}`).update({
                 estado: estadoFinal,
