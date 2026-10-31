@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro de Llamadas - Paquetería</title>
+
+    <!-- Icono representativo para acceso directo en pantalla de inicio y navegador -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='120' fill='%232ecc71'/><path fill='%23ffffff' d='M360 320c-18 0-35-5-50-13-8-4-18-3-24 3l-28 28c-45-23-82-60-105-105l28-28c7-6 8-16 4-24-8-15-13-32-13-50 0-15-12-27-27-27H98c-15 0-27 12-27 27 0 156 127 283 283 283 15 0 27-12 27-27v-47c0-15-12-27-27-27z'/></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='120' fill='%232ecc71'/><path fill='%23ffffff' d='M360 320c-18 0-35-5-50-13-8-4-18-3-24 3l-28 28c-45-23-82-60-105-105l28-28c7-6 8-16 4-24-8-15-13-32-13-50 0-15-12-27-27-27H98c-15 0-27 12-27 27 0 156 127 283 283 283 15 0 27-12 27-27v-47c0-15-12-27-27-27z'/></svg>">
+
     <style>
         :root {
             --bg-color: #f4f6f9;
@@ -651,7 +656,6 @@
                 Object.keys(data).forEach(key => {
                     const item = { id: key, ...data[key] };
 
-                    // LIMPIEZA Y CORRECCIÓN DE REGISTROS ERRÓNEOS GUARDADOS ANTERIORMENTE
                     let tuvoContesto = false;
                     if (item.desglose && Array.isArray(item.desglose)) {
                         tuvoContesto = item.desglose.some(d => d.estado === 'Contestó');
@@ -665,7 +669,6 @@
                     if (!tuvoContesto && item.estado === 'Contestó') {
                         item.estado = 'No contestó';
                         item.claseColor = 'bg-amarillo';
-                        // Actualizar Firebase para corregir el dato definitivamente
                         db.ref(`llamadas/${dateKey}/${key}`).update({
                             estado: 'No contestó',
                             claseColor: 'bg-amarillo'
@@ -731,7 +734,6 @@
             const nuevosIntentos = historialDetallado.length;
             const nuevoHistorialTexto = historialDetallado.map(h => h.estado).join(' ➔ ');
 
-            // Evaluar estrictamente si alguna llamada fue "Contestó"
             const algunIntentoContesto = historialDetallado.some(h => h.estado === 'Contestó');
 
             const estadoFinal = algunIntentoContesto ? 'Contestó' : estado;
@@ -904,4 +906,3 @@
 
 </body>
 </html>
-
